@@ -7,22 +7,39 @@ kind: Pod
 spec:
   serviceAccountName: jenkins
   containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:debug
-      command: ["/bin/sh"]
-      args: ["-c","sleep infinity"]         # pod ayakta kalsın
-      tty: true
-      volumeMounts:
-        - name: kaniko-docker-config
-          mountPath: /kaniko/.docker       # auth dosyası için
-    - name: kubectl
-      image: bitnami/kubectl:1.30-debian-12
-      command: ["/bin/sh"]
-      args: ["-c","sleep infinity"]         # shell garantili
-      tty: true
-  volumes:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["/bin/sh"]
+    args: ["-c","sleep infinity"]
+    tty: true
+    volumeMounts:
     - name: kaniko-docker-config
-      emptyDir: {}
+      mountPath: /kaniko/.docker
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+
+  - name: kubectl
+    image: bitnami/kubectl:1.30-debian-12
+    command: ["/bin/sh"]
+    args: ["-c","sleep infinity"]
+    tty: true
+    securityContext:
+      runAsUser: 0             # <-- EKLENDİ: root çalış
+    volumeMounts:
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+
+  - name: jnlp
+    image: jenkins/inbound-agent:3327.v868139a_d00e0-6
+    volumeMounts:
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+
+  volumes:
+  - name: kaniko-docker-config
+    emptyDir: {}
+  - name: workspace-volume
+    emptyDir: {}
 """
       defaultContainer 'kubectl'
     }
