@@ -51,39 +51,40 @@ spec:
       usernameVariable: 'DOCKERHUB_USR',
       passwordVariable: 'DOCKERHUB_PSW'
     )]) {
-      container('kaniko') {
-        sh '''
-          set -euo pipefail
+    container('kaniko') {
+  sh '''
+    set -euo pipefail
 
-          # 1) Docker Hub auth
-          mkdir -p /kaniko/.docker
-          AUTH=$(printf "%s:%s" "$DOCKERHUB_USR" "$DOCKERHUB_PSW" | base64 | tr -d "\\n")
-          cat > /kaniko/.docker/config.json <<EOF
-          {"auths":{"https://index.docker.io/v1/":{"auth":"${AUTH}"}}}
-          EOF
+    # 1) Docker Hub auth
+    mkdir -p /kaniko/.docker
+    AUTH=$(printf "%s:%s" "$DOCKERHUB_USR" "$DOCKERHUB_PSW" | base64 | tr -d "\\n")
+    cat > /kaniko/.docker/config.json <<EOF
+    {"auths":{"https://index.docker.io/v1/":{"auth":"${AUTH}"}}}
+    EOF
 
-          # 2) TAG üret (güvenli)
-          SHORT_SHA=$(git rev-parse --short=7 HEAD 2>/dev/null || true)
-          [ -n "$SHORT_SHA" ] || SHORT_SHA="local"
-          TAG="${BUILD_NUMBER:-0}-${SHORT_SHA}"
+    # 2) TAG üret (güvenli; boşsa 'local' koy)
+    SHORT_SHA="$(git rev-parse --short=7 HEAD 2>/dev/null || true)"
+    : "${SHORT_SHA:=local}"              # boş/unset ise 'local' ata
+    : "${BUILD_NUMBER:=0}"               # yoksa 0 ata
+    TAG="${BUILD_NUMBER}-${SHORT_SHA}"
 
-          # 3) IMAGE ismi (tüm env'ler dolu mu kontrolü)
-          : "${REGISTRY:?REGISTRY boş}"
-          : "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
-          : "${APP_NAME:?APP_NAME boş}"
-          IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
-          echo "IMAGE=${IMAGE}" > image.env
-          echo "Pushing: ${IMAGE}"
+    # 3) IMAGE ismi (zorunlu env kontrolü)
+    : "${REGISTRY:?REGISTRY boş}"
+    : "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
+    : "${APP_NAME:?APP_NAME boş}"
+    IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
+    echo "IMAGE=${IMAGE}" > image.env
+    echo "Pushing: ${IMAGE}"
 
-          # 4) Kaniko build & push
-          /kaniko/executor \
-            --context "$WORKSPACE" \
-            --dockerfile "$WORKSPACE/Dockerfile" \
-            --destination "$IMAGE" \
-            --single-snapshot \
-            --use-new-run \
-            --cache=true
-        '''
+    # 4) Kaniko build & push
+    /kaniko/executor \
+      --context "$WORKSPACE" \
+      --dockerfile "$WORKSPACE/Dockerfile" \
+      --destination "$IMAGE" \
+      --single-snapshot \
+      --use-new-run \
+      --cache=true
+  '''
       }
     }
   }
