@@ -8,7 +8,7 @@ spec:
   serviceAccountName: jenkins
   containers:
     - name: kaniko
-      gcr.io/kaniko-project/executor:debug
+      image: gcr.io/kaniko-project/executor:debug
       command: ['sleep','infinity']        # pod ayakta kalsın
       tty: true
       volumeMounts:
