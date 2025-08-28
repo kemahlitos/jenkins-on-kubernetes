@@ -45,40 +45,49 @@ spec:
     }
 
     stage('Build & Push (Kaniko)') {
-      environment {
-        SHORT_SHA = "${env.GIT_COMMIT?.take(7)}"
-        TAG       = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
-      }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-creds',
-          usernameVariable: 'DOCKERHUB_USR',
-          passwordVariable: 'DOCKERHUB_PSW'
-        )]) {
-          container('kaniko') {
-            sh '''
-              set -eux
-              mkdir -p /kaniko/.docker
-              AUTH=$(printf "%s:%s" "$DOCKERHUB_USR" "$DOCKERHUB_PSW" | base64 | tr -d "\\n")
-              cat > /kaniko/.docker/config.json <<EOF
-              {"auths":{"https://index.docker.io/v1/":{"auth":"${AUTH}"}}}
-              EOF
+  steps {
+    withCredentials([usernamePassword(
+      credentialsId: 'dockerhub-creds',
+      usernameVariable: 'DOCKERHUB_USR',
+      passwordVariable: 'DOCKERHUB_PSW'
+    )]) {
+      container('kaniko') {
+        sh '''
+          set -euo pipefail
 
-              IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
-              echo "IMAGE=${IMAGE}" > image.env
+          # 1) Docker Hub auth
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf "%s:%s" "$DOCKERHUB_USR" "$DOCKERHUB_PSW" | base64 | tr -d "\\n")
+          cat > /kaniko/.docker/config.json <<EOF
+          {"auths":{"https://index.docker.io/v1/":{"auth":"${AUTH}"}}}
+          EOF
 
-              /kaniko/executor \
-                --context "$WORKSPACE" \
-                --dockerfile "$WORKSPACE/Dockerfile" \
-                --destination "$IMAGE" \
-                --single-snapshot \
-                --use-new-run \
-                --cache=true
-            '''
-          }
-        }
+          # 2) TAG üret (güvenli)
+          SHORT_SHA=$(git rev-parse --short=7 HEAD 2>/dev/null || true)
+          [ -n "$SHORT_SHA" ] || SHORT_SHA="local"
+          TAG="${BUILD_NUMBER:-0}-${SHORT_SHA}"
+
+          # 3) IMAGE ismi (tüm env'ler dolu mu kontrolü)
+          : "${REGISTRY:?REGISTRY boş}"
+          : "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
+          : "${APP_NAME:?APP_NAME boş}"
+          IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
+          echo "IMAGE=${IMAGE}" > image.env
+          echo "Pushing: ${IMAGE}"
+
+          # 4) Kaniko build & push
+          /kaniko/executor \
+            --context "$WORKSPACE" \
+            --dockerfile "$WORKSPACE/Dockerfile" \
+            --destination "$IMAGE" \
+            --single-snapshot \
+            --use-new-run \
+            --cache=true
+        '''
       }
     }
+  }
+}
 
     stage('Deploy to Kubernetes') {
       steps {
