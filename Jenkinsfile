@@ -7,39 +7,31 @@ kind: Pod
 spec:
   serviceAccountName: jenkins
   containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    command: ["/bin/sh"]
-    args: ["-c","sleep infinity"]
-    tty: true
-    volumeMounts:
-    - name: kaniko-docker-config
-      mountPath: /kaniko/.docker
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
-
-  - name: kubectl
-    image: bitnami/kubectl:1.30-debian-12
-    command: ["/bin/sh"]
-    args: ["-c","sleep infinity"]
-    tty: true
-    securityContext:
-      runAsUser: 0             # <-- EKLENDİ: root çalış
-    volumeMounts:
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
-
-  - name: jnlp
-    image: jenkins/inbound-agent:3327.v868139a_d00e0-6
-    volumeMounts:
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
-
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: ["/bin/sh"]
+      args: ["-c","sleep infinity"]         # pod ayakta kalsın
+      tty: true
+      volumeMounts:
+        - name: kaniko-docker-config
+          mountPath: /kaniko/.docker       # auth dosyası için
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent   # Jenkins workspace
+    - name: kubectl
+      image: bitnami/kubectl:1.30-debian-12
+      command: ["/bin/sh"]
+      args: ["-c","sleep infinity"]         # shell garantili
+      tty: true
+      securityContext:
+        runAsUser: 0                        # <-- ROOT: izin hatasını çözer
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent   # Jenkins workspace
   volumes:
-  - name: kaniko-docker-config
-    emptyDir: {}
-  - name: workspace-volume
-    emptyDir: {}
+    - name: kaniko-docker-config
+      emptyDir: {}
+    - name: workspace-volume
+      emptyDir: {}
 """
       defaultContainer 'kubectl'
     }
@@ -50,7 +42,6 @@ spec:
     disableConcurrentBuilds()
   }
 
-  // İsteğe bağlı: elle tag verebilmek için parametre
   parameters {
     string(name: 'TAG', defaultValue: '', description: 'İsteğe bağlı image tag (boşsa otomatik üretilecek)')
   }
