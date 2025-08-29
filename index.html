@@ -5,9 +5,7 @@
   <title>Hello</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
-      --bg-a:#1e3c72; --bg-b:#2a5298; --bg-c:#6a11cb; --bg-d:#2575fc;
-    }
+    :root{ --bg-a:#1e3c72; --bg-b:#2a5298; --bg-c:#6a11cb; --bg-d:#2575fc; }
 
     @keyframes gradientMove {
       0% { background-position: 0% 50%; }
@@ -19,175 +17,74 @@
       to   { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
     body{
-      margin:0;
-      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-      color:#fff;
-      overflow:hidden; /* zero-g playground */
-      background: linear-gradient(270deg, var(--bg-a), var(--bg-b), var(--bg-c), var(--bg-d));
-      background-size: 600% 600%;
-      animation: gradientMove 22s ease infinite;
+      margin:0; color:#fff;
+      font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+      overflow:hidden;
+      background:linear-gradient(270deg,var(--bg-a),var(--bg-b),var(--bg-c),var(--bg-d));
+      background-size:600% 600%;
+      animation:gradientMove 22s ease infinite;
     }
 
-    /* üst metinler */
     .hud{
-      position: fixed;
-      top: 24px; left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      z-index: 10;
-      user-select: none;
-      pointer-events: none;
+      position:fixed; top:24px; left:50%; transform:translateX(-50%);
+      text-align:center; z-index:10; user-select:none; pointer-events:none;
     }
     h1{
-      margin: 0 0 8px 0;
-      font-size: clamp(28px, 5vw, 56px);
-      letter-spacing: .5px;
-      text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
+      margin:0 0 8px 0; font-size:clamp(28px,5vw,56px); letter-spacing:.5px;
+      text-shadow:0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
     }
-    .ver{
-      opacity:.9;
-      font-size: 14px;
-    }
+    .ver{ opacity:.9; font-size:14px }
+
     footer{
-      position: fixed;
-      bottom: 18px; left: 50%;
-      transform: translateX(-50%);
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
-      animation: neonPulse 2s infinite alternate;
-      user-select: none;
-      pointer-events: none;
+      position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+      font-weight:700; letter-spacing:3px; text-transform:uppercase;
+      text-shadow:0 0 5px #ff00ff,0 0 15px #ff00ff,0 0 30px #ff00ff;
+      animation:neonPulse 2s infinite alternate; user-select:none; pointer-events:none;
     }
 
-    /* zero-g sahne */
-    .stage{
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-    }
+    .stage{ position:fixed; inset:0; overflow:hidden }
 
-    /* sürüklenen objeler */
     .drifter{
-      position: absolute;
-      width: clamp(70px, 12vw, 130px);
-      aspect-ratio: 1 / 1;
-      display: grid;
-      place-items: center;
-      border-radius: 22px;
-      backdrop-filter: blur(2px);
-      transition: transform .15s ease;
-      cursor: grab;
-      will-change: transform, left, top;
-      z-index: 3;
+      position:absolute; width:clamp(70px,12vw,130px); aspect-ratio:1/1;
+      display:grid; place-items:center;
+      border-radius:22px; backdrop-filter:blur(2px);
+      transition:transform .15s ease; cursor:grab; will-change:transform,left,top;
+      z-index:3;
     }
-    .drifter:active{ cursor: grabbing; }
-
+    .drifter:active{ cursor:grabbing }
     .drifter img{
-      max-width: 82%;
-      max-height: 82%;
-      filter: drop-shadow(0 0 6px rgba(0,255,255,.8));
-      pointer-events: none;
-      user-drag: none; -webkit-user-drag: none; user-select:none;
+      max-width:82%; max-height:82%;
+      filter:drop-shadow(0 0 6px rgba(0,255,255,.8));
+      pointer-events:none; user-drag:none; -webkit-user-drag:none; user-select:none;
+    }
+    .drifter.hovered,.drifter.dragging{
+      transform:scale(1.08) rotate(2deg);
+      box-shadow:0 0 0 1px rgba(255,255,255,.08) inset, 0 0 18px rgba(0,255,255,.65);
     }
 
-    .drifter.hovered,
-    .drifter.dragging {
-      transform: scale(1.08) rotate(2deg);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.08) inset,
-        0 0 18px rgba(0,255,255,.65);
-    }
-
-    /* kahve katmanı */
-    .coffee-layer{
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2; /* drifterların altında, splash alt-üst düzeni için yeterli */
-    }
-
-    /* kahve damlası */
-    .drop{
-      position: absolute;
-      width: var(--s,6px); height: var(--s,6px);
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #7b3f00, #3d1f00 70%);
-      box-shadow: 0 0 6px rgba(75,40,0,.35);
-      transform: translate(-50%, -50%);
-      animation: fall var(--dur,1.4s) linear forwards;
-      will-change: transform, top, opacity;
-    }
-
-    /* dibe vurunca sıçrama */
-    .splash{
-      position: absolute;
-      left: 0; top: 0;
-      width: 12px; height: 12px;
-      transform: translate(-50%, -50%) scale(1);
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(123,63,0,.9) 0%, rgba(123,63,0,.4) 45%, rgba(123,63,0,0) 60%);
-      filter: blur(0.3px);
-      animation: splash 600ms ease-out forwards;
-    }
-
-    /* zeminde kahve lekesi */
-    .stain{
-      position: absolute;
-      left: 0; top: 0;
-      width: var(--w,120px); height: var(--h,60px);
-      transform: translate(-50%, -50%) rotate(var(--rot,0deg));
-      border-radius: 50%;
-      background: radial-gradient(ellipse at center, rgba(80,40,0,.55) 0%, rgba(80,40,0,.35) 45%, rgba(80,40,0,.1) 70%, rgba(80,40,0,0) 80%);
-      filter: blur(1.2px) saturate(1.1);
-      opacity: .8;
-      animation: stainFade 6s ease-out forwards;
-    }
-
-    @keyframes fall{
-      to { top: 100%; opacity: .95; }
-    }
-    @keyframes splash{
-      0%   { transform: translate(-50%, -50%) scale(0.6); opacity: .95; }
-      70%  { transform: translate(-50%, -50%) scale(1.8); opacity: .7; }
-      100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
-    }
-    @keyframes stainFade{
-      0% { opacity: .9; }
-      90%{ opacity: .35; }
-      100%{ opacity: 0; }
-    }
-
-    /* küçük parıldayan yıldızlar – zero-g hissi */
+    /* yıldızlar */
     .star{
       position:absolute; border-radius:50%;
-      opacity:.7;
-      filter: blur(0.5px);
-      background: radial-gradient(circle, #fff, rgba(255,255,255,0.2) 60%, transparent 70%);
-      width:2px; height:2px;
-      pointer-events:none;
+      opacity:.7; filter:blur(.5px);
+      background:radial-gradient(circle,#fff,rgba(255,255,255,.2) 60%,transparent 70%);
+      width:2px; height:2px; pointer-events:none;
     }
 
     .hint{
-      position: fixed;
-      bottom: 70px; right: 18px;
-      font-size: 12px;
-      opacity: .75;
-      background: rgba(0,0,0,.25);
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,.15);
-      user-select: none;
-      z-index: 4;
+      position:fixed; bottom:70px; right:18px; font-size:12px; opacity:.75;
+      background:rgba(0,0,0,.25); padding:6px 10px; border-radius:10px;
+      border:1px solid rgba(255,255,255,.15); user-select:none; z-index:4;
+    }
+
+    canvas#coffeeCanvas{
+      position:fixed; inset:0; z-index:2; pointer-events:none;
     }
 
     @media (prefers-reduced-motion: reduce){
-      .drifter, h1, footer { transition: none; animation: none; }
-      .drop, .splash, .stain { animation-duration: .01ms !important; }
+      .drifter,h1,footer{ transition:none; animation:none }
     }
   </style>
 </head>
@@ -198,226 +95,321 @@
   </div>
 
   <div class="stage" id="stage" aria-label="Zero-G sahnesi">
-    <!-- Drifter: Kubernetes -->
     <div class="drifter" id="k8s" aria-label="Kubernetes logosu" title="Kubernetes">
       <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes" />
     </div>
-    <!-- Drifter: Jenkins -->
-    <div class="drifter" id="jenkins" aria-label="Jenkins logosu (tıklayınca kahve dökülür)" title="Jenkins">
+    <div class="drifter" id="jenkins" aria-label="Jenkins logosu (tıklayınca kahve şelalesi)" title="Jenkins">
       <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins" />
     </div>
-    <!-- Kahve animasyon katmanı -->
-    <div class="coffee-layer" id="coffeeLayer" aria-hidden="true"></div>
+
+    <!-- Şelale için canvas -->
+    <canvas id="coffeeCanvas" width="0" height="0"></canvas>
   </div>
 
-  <div class="hint">Sürükleyip bırak, fırlat gitsin 🚀 • Jenkins’e tıkla: kahve dökülsün ☕️</div>
+  <div class="hint">Sürükleyip bırak 🚀 • Jenkins’e tıkla: **kahve şelalesi** ☕️</div>
   <footer>🚀 By Yusuf Kemahlı</footer>
 
   <script>
-    // Zero-g sürükleme + kenarlarda sekme
-    (function(){
-      const stage = document.getElementById('stage');
-      const coffeeLayer = document.getElementById('coffeeLayer');
-      const drifters = [
-        { el: document.getElementById('k8s'),    v: randVel(),  pos: {x: 120, y: 120}, r: 0 },
-        { el: document.getElementById('jenkins'), v: randVel(), pos: {x: 320, y: 220}, r: 0 }
-      ];
+  // Zero-g sürükleme + şelale
+  (function(){
+    const stage = document.getElementById('stage');
+    const canvas = document.getElementById('coffeeCanvas');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.max(1, window.devicePixelRatio || 1);
 
-      spawnStars(70);
+    const drifters = [
+      { el: document.getElementById('k8s'),    v: randVel(), pos: {x:120, y:120}, r:0 },
+      { el: document.getElementById('jenkins'), v: randVel(), pos: {x:320, y:220}, r:0 }
+    ];
 
-      let stageW = stage.clientWidth, stageH = stage.clientHeight;
-      window.addEventListener('resize', ()=>{ stageW = stage.clientWidth; stageH = stage.clientHeight; });
+    spawnStars(70);
 
-      drifters.forEach((d,i)=>{
+    let w = stage.clientWidth, h = stage.clientHeight;
+    function resize(){
+      w = stage.clientWidth; h = stage.clientHeight;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      canvas.width = Math.floor(w * DPR); canvas.height = Math.floor(h * DPR);
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    window.addEventListener('resize', resize); resize();
+
+    // Başlangıç konumları
+    drifters.forEach((d,i)=>{
+      const rect = d.el.getBoundingClientRect();
+      const W = rect.width || 100, H = rect.height || 100;
+      d.pos.x = (i===0 ? w*0.25 : w*0.65) - W/2;
+      d.pos.y = (i===0 ? h*0.35 : h*0.55) - H/2;
+      place(d.el, d.pos.x, d.pos.y);
+      enableDrag(d);
+    });
+
+    // Jenkins tıklanınca ŞELALE
+    const jenkins = document.getElementById('jenkins');
+
+    // Şelale kontrol parametreleri (daha kalın akış için yüksek değerler)
+    const WATERFALL = {
+      durationMs: 1800,      // akış süresi
+      rate: 2200,            // parçacık/sn (yüksek = kalın şelale)
+      spread: 38,            // başta yatay yayılma
+      gravity: 1600,         // yerçekimi (px/sn^2)
+      airDrag: 0.0025,       // havada sürtünme
+      ribbonBlur: 8,         // şelale şeridi blur
+      ribbonAlpha: 0.15      // şelale şeridi opaklık
+    };
+
+    let particles = [];           // düşen kahve parçacıkları
+    let splashes = [];            // taban sıçrama çizgileri
+    let stains = [];              // zemindeki lekeler (yayılı havuz)
+
+    jenkins.addEventListener('click', ()=>{
+      const d = drifters.find(x=>x.el===jenkins);
+      if(d?.drag) return; // sürükleme sırasında tetikleme
+      const rect = jenkins.getBoundingClientRect();
+      const start = { x: rect.left + rect.width/2, y: rect.top + rect.height*0.9 };
+      startWaterfall(start);
+    });
+
+    function startWaterfall(origin){
+      const startTime = performance.now();
+      const emitPerFrame = WATERFALL.rate / 60;
+      const baseX = origin.x, baseY = origin.y;
+
+      // büyük bir leke (havuz) oluştur
+      stains.push({
+        x: w/2, y: h-6, rX: 60, rY: 22, alpha: 0.55, growth: 46
+      });
+
+      function emitter(now){
+        const elapsed = now - startTime;
+        if(elapsed < WATERFALL.durationMs){
+          // yoğun akış için her frame çok sayıda parçacık
+          for(let i=0;i<emitPerFrame;i++){
+            const off = (Math.random()*2 - 1) * WATERFALL.spread;
+            const speed = 300 + Math.random()*180;     // başlangıç hızı
+            const jitter = (Math.random()*2 - 1) * 60; // yatay jitter
+            particles.push({
+              x: baseX + off, y: baseY + Math.random()*6,
+              vx: jitter * 0.4, vy: speed * 0.15, // ilk aşağı hız küçük; asıl hız graviteden
+              r: 3 + Math.random()*4,
+              life: 1
+            });
+          }
+          requestAnimationFrame(emitter);
+        }
+      }
+      requestAnimationFrame(emitter);
+    }
+
+    // Ana döngü
+    let last = performance.now();
+    (function loop(now){
+      const dt = Math.min(0.04, (now - last) / 1000);
+      last = now;
+
+      // Zero-g fizik
+      drifters.forEach(d=>{
+        if(d.drag) return;
+        d.pos.x += d.v.x * dt; d.pos.y += d.v.y * dt;
+        d.r += (d.v.x + d.v.y) * 0.0008;
+
         const rect = d.el.getBoundingClientRect();
-        const w = rect.width || 100, h = rect.height || 100;
-        d.pos.x = (i===0 ? stageW*0.25 : stageW*0.65) - w/2;
-        d.pos.y = (i===0 ? stageH*0.35 : stageH*0.55) - h/2;
-        place(d.el, d.pos.x, d.pos.y);
-        enableDrag(d);
+        const W = rect.width, H = rect.height;
+
+        if(d.pos.x < 0){ d.pos.x = 0; d.v.x = -d.v.x*0.98; }
+        if(d.pos.y < 0){ d.pos.y = 0; d.v.y = -d.v.y*0.98; }
+        if(d.pos.x + W > w){ d.pos.x = w - W; d.v.x = -d.v.x*0.98; }
+        if(d.pos.y + H > h){ d.pos.y = h - H; d.v.y = -d.v.y*0.98; }
+
+        const drag = 0.997; d.v.x *= drag; d.v.y *= drag;
+        place(d.el, d.pos.x, d.pos.y, d.r);
       });
 
-      // Jenkins'e tıklayınca kahve dökülmesi
-      const jenkins = document.getElementById('jenkins');
-      jenkins.addEventListener('click', (e)=>{
-        // sürükleme esnasında yanlışlıkla tetiklenmesin
-        const d = drifters.find(x=>x.el===jenkins);
-        if(d?.drag) return;
+      // Canvas çizimi
+      ctx.clearRect(0,0,w,h);
 
-        const rect = jenkins.getBoundingClientRect();
-        const startX = rect.left + rect.width/2;
-        const startY = rect.top + rect.height*0.9; // alt kenara yakın
-        pourCoffee(startX, startY);
-      });
+      // Şelale şeridi (kalın görünüm için yarı saydam doldurma)
+      drawRibbon(dt);
 
-      // ana fizik döngüsü
-      let last = performance.now();
-      function tick(now){
-        const dt = Math.min(0.04, (now - last) / 1000);
-        last = now;
+      // Parçacıklar
+      updateParticles(dt);
 
-        drifters.forEach(d=>{
-          if(d.drag) return;
-          d.pos.x += d.v.x * dt;
-          d.pos.y += d.v.y * dt;
-          d.r += (d.v.x + d.v.y) * 0.0008;
+      // Taban sıçramaları
+      updateSplashes(dt);
 
-          const rect = d.el.getBoundingClientRect();
-          const w = rect.width, h = rect.height;
+      // Havuz/lekeler
+      updateStains(dt);
 
-          if(d.pos.x < 0){ d.pos.x = 0; d.v.x = -d.v.x*0.98; }
-          if(d.pos.y < 0){ d.pos.y = 0; d.v.y = -d.v.y*0.98; }
-          if(d.pos.x + w > stageW){ d.pos.x = stageW - w; d.v.x = -d.v.x*0.98; }
-          if(d.pos.y + h > stageH){ d.pos.y = stageH - h; d.v.y = -d.v.y*0.98; }
+      requestAnimationFrame(loop);
+    })(performance.now());
 
-          const drag = 0.997;
-          d.v.x *= drag; d.v.y *= drag;
+    function drawRibbon(dt){
+      // Parçacık yoğunluğuna göre bir “şerit” oluşturup blur uygula
+      if(particles.length < 8) return;
 
-          place(d.el, d.pos.x, d.pos.y, d.r);
-        });
-
-        requestAnimationFrame(tick);
+      // kabaca kaynak ile taban arasında kalın bir yol çiz
+      // son eklenen parçacıklardan bir ortalama izdüşüm çıkaralım
+      let avgTop = null;
+      for(let i=particles.length-1, c=0; i>=0 && c<40; i--, c++){
+        const p = particles[i];
+        if(!avgTop) avgTop = {x:p.x, y:p.y};
+        else { avgTop.x = avgTop.x*0.9 + p.x*0.1; avgTop.y = Math.min(avgTop.y, p.y); }
       }
-      requestAnimationFrame(tick);
+      if(!avgTop) return;
 
-      // Yardımcılar
-      function place(el, x, y, r=0){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform = `translateZ(0) rotate(${r}rad)`; }
-      function randVel(){
-        const speed = 60 + Math.random()*80;
-        const a = Math.random()*Math.PI*2;
-        return { x: Math.cos(a)*speed, y: Math.sin(a)*speed };
-      }
-      function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+      ctx.save();
+      ctx.globalAlpha = WATERFALL.ribbonAlpha;
+      ctx.filter = `blur(${WATERFALL.ribbonBlur}px)`;
+      const grd = ctx.createLinearGradient(avgTop.x, avgTop.y, avgTop.x, h);
+      grd.addColorStop(0, '#6b3a00');
+      grd.addColorStop(0.4, '#4a2600');
+      grd.addColorStop(1, 'rgba(58,28,0,0.85)');
+      ctx.fillStyle = grd;
 
-      function enableDrag(d){
-        let prev = null;
-        const onDown = (e)=>{
-          e.preventDefault();
-          d.drag = true;
-          d.el.classList.add('dragging','hovered');
-          prev = getPoint(e);
-          d.offset = { x: prev.x - d.pos.x, y: prev.y - d.pos.y };
-          window.addEventListener('mousemove', onMove);
-          window.addEventListener('touchmove', onMove, {passive:false});
-          window.addEventListener('mouseup', onUp);
-          window.addEventListener('touchend', onUp);
-        };
-        const onMove = (e)=>{
-          if(!d.drag) return;
-          e.preventDefault();
-          const p = getPoint(e);
-          const nx = clamp(p.x - d.offset.x, 0, stageW - d.el.getBoundingClientRect().width);
-          const ny = clamp(p.y - d.offset.y, 0, stageH - d.el.getBoundingClientRect().height);
-          d.v = { x: (nx - d.pos.x) * 60, y: (ny - d.pos.y) * 60 };
-          d.pos.x = nx; d.pos.y = ny;
-          place(d.el, d.pos.x, d.pos.y);
-          prev = p;
-        };
-        const onUp = ()=>{
-          d.drag = false;
-          d.el.classList.remove('dragging','hovered');
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('touchmove', onMove);
-          window.removeEventListener('mouseup', onUp);
-          window.removeEventListener('touchend', onUp);
-        };
+      // genişlik
+      const width = 70;
+      ctx.beginPath();
+      ctx.moveTo(avgTop.x - width/2, avgTop.y);
+      ctx.lineTo(avgTop.x + width/2, avgTop.y);
+      ctx.lineTo(avgTop.x + width*0.9, h);
+      ctx.lineTo(avgTop.x - width*0.9, h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
-        d.el.addEventListener('mousedown', onDown);
-        d.el.addEventListener('touchstart', onDown, {passive:false});
-        d.el.addEventListener('mouseenter', ()=> d.el.classList.add('hovered'));
-        d.el.addEventListener('mouseleave', ()=> !d.drag && d.el.classList.remove('hovered'));
-      }
+    function updateParticles(dt){
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i];
+        // hava sürtünmesi
+        p.vx *= (1 - WATERFALL.airDrag);
+        p.vy += WATERFALL.gravity * dt;
 
-      function getPoint(e){
-        if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        return { x: e.clientX, y: e.clientY };
-      }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
 
-      function spawnStars(n){
-        for(let i=0;i<n;i++){
-          const s = document.createElement('div');
-          s.className='star';
-          const size = Math.random() < 0.15 ? 3 : 2;
-          s.style.width = s.style.height = size+'px';
-          s.style.left = Math.random()*100+'%';
-          s.style.top  = Math.random()*100+'%';
-          s.style.opacity = (0.4 + Math.random()*0.6).toFixed(2);
-          stage.appendChild(s);
-          twinkle(s);
+        // tabana çarpma
+        if(p.y >= h-4){
+          // sıçrama çizgisi
+          splashes.push({
+            x:p.x, y:h-6, life:0.25 + Math.random()*0.25,
+            vx:(Math.random()*2-1)*260, vy:- (120 + Math.random()*160)
+          });
+          // havuza katkı
+          stains.push({
+            x:p.x + (Math.random()*40 - 20),
+            y:h-6, rX: 20 + Math.random()*26, rY: 10 + Math.random()*12,
+            alpha: 0.5, growth: 30 + Math.random()*30
+          });
+          particles.splice(i,1);
+          continue;
         }
+
+        // çizim: yoğunluk için yarı saydam oval
+        ctx.save();
+        ctx.fillStyle = 'rgba(85,42,0,0.85)';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.r*0.8, p.r*1.2, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
       }
-      function twinkle(el){
-        const dur = 2000 + Math.random()*3000;
-        let dir = 1, o = parseFloat(el.style.opacity);
-        setInterval(()=>{
-          o += dir * 0.08;
-          if(o>=1){ o=1; dir=-1; }
-          if(o<=0.25){ o=0.25; dir=1; }
-          el.style.opacity = o.toFixed(2);
-        }, dur/20);
+    }
+
+    function updateSplashes(dt){
+      for(let i=splashes.length-1;i>=0;i--){
+        const s = splashes[i];
+        s.life -= dt;
+        s.vy += 1800 * dt; // yerçekimi
+        s.x += s.vx * dt; s.y += s.vy * dt;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0,s.life) * 0.9;
+        ctx.strokeStyle = '#7b3f00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - s.vx*0.03, s.y - s.vy*0.03);
+        ctx.stroke();
+        ctx.restore();
+
+        if(s.life<=0 || s.y>h+20) splashes.splice(i,1);
       }
+    }
 
-      // ---- KAHVE DÖKÜLMESİ ----
-      function pourCoffee(startX, startY){
-        const drops = 28 + Math.floor(Math.random()*14); // 28-42 damla
-        const maxSpread = 70; // yatay saçılma
-        const height = window.innerHeight;
+    function updateStains(dt){
+      for(let i=stains.length-1;i>=0;i--){
+        const st = stains[i];
+        st.rX += st.growth * dt;
+        st.rY += st.growth * 0.45 * dt;
+        st.alpha *= (1 - 0.15*dt);
 
-        for(let i=0;i<drops;i++){
-          const d = document.createElement('div');
-          d.className = 'drop';
-          const s = 4 + Math.random()*6; // damla boyutu
-          const dur = 900 + Math.random()*900; // düşüş süresi
-          const offsetX = (Math.random()*2-1) * maxSpread;
-          const wind = (Math.random()*2-1) * 30; // hafif rüzgar etkisi
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(0.8, st.alpha));
+        const rg = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, Math.max(st.rX, st.rY));
+        rg.addColorStop(0, 'rgba(80,40,0,0.65)');
+        rg.addColorStop(0.6, 'rgba(80,40,0,0.35)');
+        rg.addColorStop(1, 'rgba(80,40,0,0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.ellipse(st.x, st.y, st.rX, st.rY, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
 
-          // başlangıç konumu
-          d.style.setProperty('--s', s+'px');
-          d.style.setProperty('--dur', dur+'ms');
-          d.style.left = (startX + offsetX) + 'px';
-          d.style.top  = (startY + Math.random()*20) + 'px';
-
-          coffeeLayer.appendChild(d);
-
-          // animasyon bittiğinde splash + stain
-          const onEnd = ()=>{
-            d.removeEventListener('animationend', onEnd);
-            const endY = height - 6; // zemine yakın
-            const endX = parseFloat(d.style.left) + wind; // rüzgarla hafif kaydır
-            spawnSplash(endX, endY, s);
-            if(Math.random() < 0.15){ // arada bir büyük leke bırak
-              spawnStain(endX + (Math.random()*60-30), height - 8);
-            }
-            d.remove();
-          };
-          d.addEventListener('animationend', onEnd);
-        }
+        if(st.alpha < 0.02) stains.splice(i,1);
       }
+    }
 
-      function spawnSplash(x,y,scale=6){
-        const sp = document.createElement('div');
-        sp.className = 'splash';
-        sp.style.left = x+'px';
-        sp.style.top  = y+'px';
-        sp.style.width = sp.style.height = (scale*2)+'px';
-        coffeeLayer.appendChild(sp);
-        sp.addEventListener('animationend', ()=> sp.remove());
-      }
+    // yardımcılar
+    function place(el,x,y,r=0){ el.style.left=x+'px'; el.style.top=y+'px'; el.style.transform=`translateZ(0) rotate(${r}rad)`; }
+    function randVel(){ const s=60+Math.random()*80, a=Math.random()*Math.PI*2; return {x:Math.cos(a)*s,y:Math.sin(a)*s}; }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
 
-      function spawnStain(x,y){
-        const st = document.createElement('div');
-        st.className = 'stain';
-        const w = 90 + Math.random()*120;
-        const h = w * (0.35 + Math.random()*0.25);
-        st.style.setProperty('--w', w+'px');
-        st.style.setProperty('--h', h+'px');
-        st.style.setProperty('--rot', (Math.random()*60-30)+'deg');
-        st.style.left = x+'px';
-        st.style.top  = y+'px';
-        coffeeLayer.appendChild(st);
-        st.addEventListener('animationend', ()=> st.remove());
+    function enableDrag(d){
+      const onDown = (e)=>{
+        e.preventDefault(); d.drag = true; d.el.classList.add('dragging','hovered');
+        const p = getPoint(e);
+        d.offset = { x:p.x - d.pos.x, y:p.y - d.pos.y };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, {passive:false});
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchend', onUp);
+      };
+      const onMove = (e)=>{
+        if(!d.drag) return; e.preventDefault();
+        const p = getPoint(e);
+        const nx = clamp(p.x - d.offset.x, 0, w - d.el.getBoundingClientRect().width);
+        const ny = clamp(p.y - d.offset.y, 0, h - d.el.getBoundingClientRect().height);
+        d.v = { x:(nx - d.pos.x)*60, y:(ny - d.pos.y)*60 };
+        d.pos.x = nx; d.pos.y = ny; place(d.el, d.pos.x, d.pos.y);
+      };
+      const onUp = ()=>{
+        d.drag = false; d.el.classList.remove('dragging','hovered');
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('touchend', onUp);
+      };
+      d.el.addEventListener('mousedown', onDown);
+      d.el.addEventListener('touchstart', onDown, {passive:false});
+      d.el.addEventListener('mouseenter', ()=> d.el.classList.add('hovered'));
+      d.el.addEventListener('mouseleave', ()=> !d.drag && d.el.classList.remove('hovered'));
+    }
+
+    function getPoint(e){ if(e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY}; return {x:e.clientX, y:e.clientY}; }
+
+    function spawnStars(n){
+      for(let i=0;i<n;i++){
+        const s=document.createElement('div'); s.className='star';
+        const size=Math.random()<0.15?3:2; s.style.width=s.style.height=size+'px';
+        s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*100+'%';
+        s.style.opacity=(0.4+Math.random()*0.6).toFixed(2);
+        stage.appendChild(s); twinkle(s);
       }
-    })();
+    }
+    function twinkle(el){
+      const dur=2000+Math.random()*3000; let dir=1, o=parseFloat(el.style.opacity);
+      setInterval(()=>{ o+=dir*0.08; if(o>=1){o=1;dir=-1;} if(o<=0.25){o=0.25;dir=1;} el.style.opacity=o.toFixed(2); }, dur/20);
+    }
+  })();
   </script>
 </body>
 </html>
