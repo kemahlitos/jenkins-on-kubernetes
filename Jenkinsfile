@@ -10,23 +10,28 @@ spec:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
       command: ["/bin/sh"]
-      args: ["-c","sleep infinity"]         # pod ayakta kalsın
+      args: ["-c","sleep infinity"]
       tty: true
       volumeMounts:
         - name: kaniko-docker-config
-          mountPath: /kaniko/.docker       # auth dosyası için
+          mountPath: /kaniko/.docker
         - name: workspace-volume
-          mountPath: /home/jenkins/agent   # Jenkins workspace
+          mountPath: /home/jenkins/agent
     - name: kubectl
       image: bitnami/kubectl:1.30-debian-12
       command: ["/bin/sh"]
-      args: ["-c","sleep infinity"]         # shell garantili
+      args: ["-c","sleep infinity"]
       tty: true
       securityContext:
-        runAsUser: 0                        # <-- ROOT: izin hatasını çözer
+        runAsUser: 0
       volumeMounts:
         - name: workspace-volume
-          mountPath: /home/jenkins/agent   # Jenkins workspace
+          mountPath: /home/jenkins/agent
+    - name: jnlp
+      image: jenkins/inbound-agent:3327.v868139a_d00e0-6
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
   volumes:
     - name: kaniko-docker-config
       emptyDir: {}
@@ -47,7 +52,7 @@ spec:
   }
 
   environment {
-    DOCKERHUB_NAMESPACE = "kemahlitos"   // Docker Hub kullanıcı adın
+    DOCKERHUB_NAMESPACE = "kemahlitos"
     APP_NAME            = "hello-web"
     REGISTRY            = "docker.io"
     NAMESPACE           = "demo"
@@ -85,12 +90,12 @@ if [ -z "${TAG:-}" ]; then
 fi
 echo "Using TAG: $TAG"
 
-# 3) IMAGE ismi (zorunlu env kontrolü)
+# 3) IMAGE ismi
 : "${REGISTRY:?REGISTRY boş}"
 : "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
 : "${APP_NAME:?APP_NAME boş}"
 IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
-echo "IMAGE=${IMAGE}" > image.env
+echo "IMAGE=${IMAGE}" > "$WORKSPACE/image.env"
 echo "Pushing: ${IMAGE}"
 
 # 4) Kaniko build & push
@@ -110,7 +115,7 @@ echo "Pushing: ${IMAGE}"
         container('kubectl') {
           sh '''#!/bin/sh
 set -eux
-. image.env
+. "$WORKSPACE/image.env"
 
 # Namespace varsa geç, yoksa oluştur
 kubectl get ns "${NAMESPACE}" || kubectl create ns "${NAMESPACE}"
@@ -129,7 +134,7 @@ kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" || \
 
 # NodePort'u yaz
 PORT="$(kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" -o jsonpath='{.spec.ports[0].nodePort}')"
-echo "NODEPORT=${PORT}" > service.env
+echo "NODEPORT=${PORT}" > "$WORKSPACE/service.env"
 echo "NodePort: ${PORT}"
 '''
         }
@@ -140,8 +145,8 @@ echo "NodePort: ${PORT}"
       steps {
         sh '''#!/bin/sh
 set -eux
-. image.env
-. service.env
+. "$WORKSPACE/image.env"
+. "$WORKSPACE/service.env"
 echo "Deployed image: ${IMAGE}"
 echo "Kubernetes namespace: ${NAMESPACE}"
 echo "Service: ${APP_NAME}"
