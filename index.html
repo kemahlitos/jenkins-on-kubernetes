@@ -1,299 +1,446 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>Hello</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yakala Noktayı! — Mini Oyun</title>
   <style>
     :root{
-      --bg-a:#1e3c72; --bg-b:#2a5298; --bg-c:#6a11cb; --bg-d:#2575fc;
+      --bg: radial-gradient(1200px 800px at 10% 10%, #1a2540 0%, #0f172a 40%, #0b1020 100%);
+      --card: rgba(255,255,255,0.06);
+      --card-border: rgba(255,255,255,0.08);
+      --text: #e5eef9;
+      --muted: #a9b5c9;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --good: #34d399;
+      --bad: #f97316;
     }
-
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    @keyframes neonPulse {
-      from { text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff; }
-      to   { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-      color:#fff;
-      overflow:hidden; /* zero-g playground */
-      background: linear-gradient(270deg, var(--bg-a), var(--bg-b), var(--bg-c), var(--bg-d));
-      background-size: 600% 600%;
-      animation: gradientMove 22s ease infinite;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background: var(--bg);
+      background-attachment: fixed;
+      display:grid;
+      place-items:center;
     }
+    .container{
+      width: min(920px, 92vw);
+      padding: 18px;
+    }
+    .card{
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+      overflow: clip;
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding: 18px 20px 0 20px;
+    }
+    h1{margin:0; font-size: clamp(20px, 2.4vw, 28px); letter-spacing:.2px}
+    .sub{color:var(--muted); font-size: 13px}
 
-    /* üst metinler */
     .hud{
-      position: fixed;
-      top: 24px; left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      z-index: 10;
-      user-select: none;
-      pointer-events: none;
+      display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:10px;
+      padding: 12px 20px 18px 20px;
     }
-    h1{
-      margin: 0 0 8px 0;
-      font-size: clamp(28px, 5vw, 56px);
-      letter-spacing: .5px;
-      text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
+    .stat{
+      border: 1px solid var(--card-border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border-radius: 14px; padding: 10px 12px;
     }
-    .ver{
-      opacity:.9;
-      font-size: 14px;
+    .stat .label{font-size:12px; color:var(--muted)}
+    .stat .value{font-weight:700; font-size:20px; margin-top:2px}
+
+    .controls{
+      display:flex; flex-wrap:wrap; gap:10px; padding: 0 20px 16px 20px;
     }
-    footer{
-      position: fixed;
-      bottom: 18px; left: 50%;
-      transform: translateX(-50%);
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
-      animation: neonPulse 2s infinite alternate;
-      user-select: none;
-      pointer-events: none;
+    .controls > *{height:38px}
+    select, button{
+      appearance:none; -webkit-appearance:none;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--card-border);
+      color:var(--text); border-radius: 12px; padding: 8px 12px; font-weight:600;
+      transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+    }
+    select:focus-visible, button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+    button:hover{transform: translateY(-1px)}
+    .primary{ background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-color: transparent;}
+    .muted{ background: rgba(255,255,255,0.05)}
+
+    #playfield{
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      min-height: 340px;
+      border-top: 1px dashed rgba(255,255,255,0.12);
+      background:
+        radial-gradient(120px 80px at 10% 10%, rgba(255,255,255,.06), transparent),
+        radial-gradient(200px 120px at 90% 30%, rgba(255,255,255,.05), transparent),
+        linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0.0));
     }
 
-    /* zero-g sahne */
-    .stage{
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
+    #target{
+      position:absolute; left:0; top:0;
+      width: 72px; height: 72px; border-radius: 999px; border:none; cursor: pointer;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #ffe 8%, #f0f9ff 25%, #7dd3fc 55%, #38bdf8 80%);
+      box-shadow: 0 10px 16px rgba(56,189,248,.35), inset 0 0 16px rgba(255,255,255,.8);
+      transform: translate(-50%, -50%) scale(0.96);
+      transition: transform .06s ease;
     }
+    #target:hover{ transform: translate(-50%, -50%) scale(1.02)}
+    #target:active{ transform: translate(-50%, -50%) scale(0.94)}
 
-    /* sürüklenen objeler */
-    .drifter{
-      position: absolute;
-      width: clamp(70px, 12vw, 130px);
-      aspect-ratio: 1 / 1;
-      display: grid;
-      place-items: center;
-      border-radius: 22px;
-      backdrop-filter: blur(2px);
-      transition: transform .15s ease;
-      cursor: grab;
-      will-change: transform, left, top;
-    }
-    .drifter:active{ cursor: grabbing; }
+    .pulse{ animation: pulse .7s ease; }
+    @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(125,211,252,.5)} 100%{box-shadow:0 0 0 22px rgba(125,211,252,0)} }
 
-    .drifter img{
-      max-width: 82%;
-      max-height: 82%;
-      filter: drop-shadow(0 0 6px rgba(0,255,255,.8));
-      pointer-events: none; /* tıklama kapsayıcıya gitsin */
-      user-drag: none; -webkit-user-drag: none; user-select:none;
-    }
+    .toasts{ position:absolute; inset:0; pointer-events:none; overflow:hidden }
+    .toast{ position:absolute; color:#fff; font-weight:700; text-shadow:0 2px 10px rgba(0,0,0,.5); opacity:0; animation: pop 600ms ease forwards }
+    @keyframes pop{ 0%{ transform: translateY(8px) scale(.9); opacity:0 } 25%{opacity:1} 100%{ transform: translateY(-24px) scale(1); opacity:0 } }
 
-    /* hover ışıltısı (sürüklemede de hafif büyüsün) */
-    .drifter.hovered,
-    .drifter.dragging {
-      transform: scale(1.08) rotate(2deg);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.08) inset,
-        0 0 18px rgba(0,255,255,.65);
-    }
+    footer{ padding: 14px 20px 20px 20px; color: var(--muted); font-size: 13px; display:flex; justify-content:space-between; align-items:center; gap:10px }
+    .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(255,255,255,.08); border: 1px solid var(--card-border); padding: 2px 6px; border-radius: 6px }
 
-    /* küçük parıldayan parçacıklar – zero-g hissi */
-    .star{
-      position:absolute; border-radius:50%;
-      opacity:.7;
-      filter: blur(0.5px);
-      background: radial-gradient(circle, #fff, rgba(255,255,255,0.2) 60%, transparent 70%);
-      width:2px; height:2px;
-      pointer-events:none;
-    }
+    .center{ display:grid; place-items:center }
 
-    /* erişilebilirlik ipucu */
-    .hint{
-      position: fixed;
-      bottom: 70px; right: 18px;
-      font-size: 12px;
-      opacity: .75;
-      background: rgba(0,0,0,.25);
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,.15);
-      user-select: none;
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .drifter, h1, footer { transition: none; animation: none; }
-    }
+    .hidden{ display:none !important }
   </style>
 </head>
 <body>
-  <div class="hud">
-    <h1>Hello from Jenkins + K8s!</h1>
-    <div class="ver">Version: 1.6</div>
-  </div>
+  <div class="container">
+    <div class="card">
+      <header>
+        <div>
+          <h1>Yakala Noktayı! <span class="sub">(basit & eğlenceli)</span></h1>
+          <div class="sub">Hedefe tıkla / dokun, süre bitmeden olabildiğince çok puan topla.</div>
+        </div>
+        <button id="helpBtn" class="muted" title="İpuçları">❓ İpucu</button>
+      </header>
 
-  <div class="stage" id="stage" aria-label="Zero-G sahnesi">
-    <!-- Drifter: Kubernetes -->
-    <div class="drifter" id="k8s" aria-label="Kubernetes logosu" title="Kubernetes">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes" />
-    </div>
-    <!-- Drifter: Jenkins -->
-    <div class="drifter" id="jenkins" aria-label="Jenkins logosu" title="Jenkins">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins" />
+      <section class="hud" aria-live="polite">
+        <div class="stat"><div class="label">Skor</div><div id="score" class="value">0</div></div>
+        <div class="stat"><div class="label">Süre</div><div id="time" class="value">30.0</div></div>
+        <div class="stat"><div class="label">En Yüksek</div><div id="best" class="value">0</div></div>
+        <div class="stat"><div class="label">Çarpan</div><div id="mult" class="value">x1</div></div>
+      </section>
+
+      <section class="controls">
+        <select id="difficulty" aria-label="Zorluk">
+          <option value="easy">Kolay</option>
+          <option value="normal" selected>Orta</option>
+          <option value="hard">Zor</option>
+          <option value="insane">Delicesine</option>
+        </select>
+        <select id="duration" aria-label="Süre">
+          <option value="30" selected>30 sn</option>
+          <option value="45">45 sn</option>
+          <option value="60">60 sn</option>
+        </select>
+        <button id="startBtn" class="primary">▶ Başlat (Space)</button>
+        <button id="pauseBtn" class="muted" disabled>⏸ Duraklat</button>
+        <button id="resetBtn" class="muted">↺ Sıfırla</button>
+      </section>
+
+      <section id="playfield" class="center" aria-label="Oyun alanı">
+        <button id="target" class="hidden" aria-label="Hedef"></button>
+        <div class="toasts" id="toasts"></div>
+      </section>
+
+      <footer>
+        <div>İpucu: Hızlı arka arkaya isabetler <strong>çarpanı</strong> yükseltir. Kaçırırsan çarpan düşer.</div>
+        <div>
+          Kısayollar: <span class="kbd">Space</span> başlat/duraklat · <span class="kbd">R</span> sıfırla
+        </div>
+      </footer>
     </div>
   </div>
-
-  <div class="hint">Sürükleyip bırak, fırlat gitsin 🚀</div>
-  <footer>🚀 By Yusuf Kemahlı</footer>
 
   <script>
-    // Basit zero-g fiziği: sürtünme düşük, yerçekimi yok, duvarlarda esnek çarpışma.
-    (function(){
-      const stage = document.getElementById('stage');
-      const drifters = [
-        { el: document.getElementById('k8s'),  v: randVel(),  pos: {x: 120, y: 120}, r: 0 },
-        { el: document.getElementById('jenkins'), v: randVel(), pos: {x: 320, y: 220}, r: 0 }
-      ];
+  ;(() => {
+    const $ = (sel) => document.querySelector(sel)
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel))
 
-      // bir avuç yıldız – ambience
-      spawnStars(70);
+    const els = {
+      playfield: $('#playfield'),
+      target: $('#target'),
+      score: $('#score'),
+      time: $('#time'),
+      best: $('#best'),
+      mult: $('#mult'),
+      toasts: $('#toasts'),
+      startBtn: $('#startBtn'),
+      pauseBtn: $('#pauseBtn'),
+      resetBtn: $('#resetBtn'),
+      difficulty: $('#difficulty'),
+      duration: $('#duration'),
+      helpBtn: $('#helpBtn'),
+    }
 
-      let stageW = stage.clientWidth, stageH = stage.clientHeight;
-      window.addEventListener('resize', ()=>{ stageW = stage.clientWidth; stageH = stage.clientHeight; });
+    const DIFFS = {
+      easy:   { size: 84, moveDelay: 950, bonus: 5, missPenalty: 0 },
+      normal: { size: 72, moveDelay: 800, bonus: 10, missPenalty: 1 },
+      hard:   { size: 64, moveDelay: 650, bonus: 14, missPenalty: 2 },
+      insane: { size: 56, moveDelay: 520, bonus: 18, missPenalty: 3 },
+    }
 
-      // başlangıç konumlarını rastgele biraz dağıt
-      drifters.forEach((d,i)=>{
-        const rect = d.el.getBoundingClientRect();
-        const w = rect.width || 100, h = rect.height || 100;
-        d.pos.x = (i===0 ? stageW*0.25 : stageW*0.65);
-        d.pos.y = (i===0 ? stageH*0.35 : stageH*0.55);
-        place(d.el, d.pos.x, d.pos.y);
-        enableDrag(d);
-      });
+    const KEY = 'catchdot-highscore-v1'
 
-      // ana döngü
-      let last = performance.now();
-      function tick(now){
-        const dt = Math.min(0.04, (now - last) / 1000); // s
-        last = now;
+    const state = {
+      running: false,
+      started: false,
+      score: 0,
+      time: 30,
+      mult: 1,
+      streak: 0,
+      nextMoveAt: 0,
+      lastHitAt: 0,
+      missGrace: 160, // ms: tıklandığında hedefin kaçışına karşı tolerans
+      rect: null,
+      loop: null,
+      osc: null, // WebAudio
+      gain: null,
+    }
 
-        drifters.forEach(d=>{
-          if(d.drag) return; // sürüklenirken fizik durur
+    function init() {
+      const best = Number(localStorage.getItem(KEY) || '0')
+      els.best.textContent = best
+      applyDifficulty()
+      applyDuration()
+      measure()
+      window.addEventListener('resize', measure)
+      bind()
+      hintToast('Hazır mısın? Başlamak için ▶ veya Space!')
+    }
 
-          // hız uygula (zero-g)
-          d.pos.x += d.v.x * dt;
-          d.pos.y += d.v.y * dt;
-          d.r += (d.v.x + d.v.y) * 0.0008; // hafif dönme hissi
+    function bind(){
+      els.startBtn.addEventListener('click', toggleStart)
+      els.pauseBtn.addEventListener('click', pause)
+      els.resetBtn.addEventListener('click', reset)
+      els.difficulty.addEventListener('change', onDiffChange)
+      els.duration.addEventListener('change', onDurationChange)
+      els.helpBtn.addEventListener('click', showHelp)
 
-          // kenar çarpışması (elastik, az sönüm)
-          const rect = d.el.getBoundingClientRect();
-          const w = rect.width, h = rect.height;
+      els.playfield.addEventListener('click', onMiss)
+      els.target.addEventListener('click', onHit)
+      els.target.addEventListener('touchstart', (e)=>{ e.preventDefault(); onHit(e) }, {passive:false})
 
-          if(d.pos.x < 0){ d.pos.x = 0; d.v.x = -d.v.x*0.98; }
-          if(d.pos.y < 0){ d.pos.y = 0; d.v.y = -d.v.y*0.98; }
-          if(d.pos.x + w > stageW){ d.pos.x = stageW - w; d.v.x = -d.v.x*0.98; }
-          if(d.pos.y + h > stageH){ d.pos.y = stageH - h; d.v.y = -d.v.y*0.98; }
+      document.addEventListener('keydown', (e)=>{
+        if(e.code === 'Space'){ e.preventDefault(); state.running ? pause() : start() }
+        if(e.key.toLowerCase() === 'r'){ reset() }
+      })
+    }
 
-          // çok küçük hızları yavaşça sönümlendir (sürüklenmesin diye min sürtünme)
-          const drag = 0.997;
-          d.v.x *= drag; d.v.y *= drag;
+    function showHelp(){
+      alert('Amaç: Süre bitmeden mümkün olduğunca çok kez hedefe tıkla/dokun.\n\nİpuçları:\n• Arka arkaya hızlı isabetler çarpanı artırır.\n• Kaçırırsan çarpan düşer.\n• Zorluk ve süreyi değiştirip kendini zorla!')
+    }
 
-          place(d.el, d.pos.x, d.pos.y, d.r);
-        });
+    function onDiffChange(){
+      applyDifficulty()
+      if(!state.started) positionTarget(true)
+    }
 
-        requestAnimationFrame(tick);
+    function onDurationChange(){
+      applyDuration()
+      updateHUD()
+    }
+
+    function applyDifficulty(){
+      const d = DIFFS[els.difficulty.value]
+      els.target.style.width = d.size + 'px'
+      els.target.style.height = d.size + 'px'
+      addClass(els.target, 'pulse')
+      setTimeout(()=>removeClass(els.target,'pulse'), 400)
+    }
+
+    function applyDuration(){
+      state.time = Number(els.duration.value)
+    }
+
+    function measure(){
+      state.rect = els.playfield.getBoundingClientRect()
+    }
+
+    function toggleStart(){ state.running ? pause() : start() }
+
+    function start(){
+      if(!state.started) {
+        state.score = 0; state.mult = 1; state.streak = 0
+        state.time = Number(els.duration.value)
+        els.target.classList.remove('hidden')
+        positionTarget(true)
+        state.started = true
       }
-      requestAnimationFrame(tick);
+      state.running = true
+      els.startBtn.textContent = '▶ Devam (Space)'
+      els.pauseBtn.disabled = false
+      loop()
+      ping(880, 0.04)
+    }
 
-      // yardımcılar
-      function place(el, x, y, r=0){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform = `translateZ(0) rotate(${r}rad)`; }
-      function randVel(){
-        const speed = 60 + Math.random()*80; // px/s
-        const a = Math.random()*Math.PI*2;
-        return { x: Math.cos(a)*speed, y: Math.sin(a)*speed };
+    function pause(){
+      state.running = false
+      els.pauseBtn.disabled = true
+      els.startBtn.textContent = '▶ Devam (Space)'
+      cancelAnimationFrame(state.loop)
+      ping(260, 0.05)
+    }
+
+    function reset(){
+      state.running = false
+      state.started = false
+      state.score = 0
+      state.mult = 1
+      state.streak = 0
+      state.time = Number(els.duration.value)
+      els.target.classList.add('hidden')
+      updateHUD()
+      cancelAnimationFrame(state.loop)
+      ping(200, 0.03)
+    }
+
+    function end(){
+      state.running = false
+      state.started = false
+      els.pauseBtn.disabled = true
+      cancelAnimationFrame(state.loop)
+      const best = Number(localStorage.getItem(KEY) || '0')
+      if(state.score > best){
+        localStorage.setItem(KEY, String(state.score))
+        els.best.textContent = state.score
+        toast('+Yeni Rekor!', els.playfield.clientWidth/2, 40)
       }
+      hintToast('Bitti! Skorun: ' + state.score + ' — Tekrar için ▶')
+      ping(520, 0.1); setTimeout(()=>ping(420,0.1), 90); setTimeout(()=>ping(320,0.1), 180)
+    }
 
-      function enableDrag(d){
-        let prev = null; // önceki nokta (hız çıkarmak için)
-        const onDown = (e)=>{
-          e.preventDefault();
-          d.drag = true;
-          d.el.classList.add('dragging');
-          prev = getPoint(e);
-          d.offset = {
-            x: prev.x - d.pos.x,
-            y: prev.y - d.pos.y
-          };
-          // hover stili
-          d.el.classList.add('hovered');
-          window.addEventListener('mousemove', onMove);
-          window.addEventListener('touchmove', onMove, {passive:false});
-          window.addEventListener('mouseup', onUp);
-          window.addEventListener('touchend', onUp);
-        };
-        const onMove = (e)=>{
-          if(!d.drag) return;
-          e.preventDefault();
-          const p = getPoint(e);
-          const nx = clamp(p.x - d.offset.x, 0, stageW - d.el.getBoundingClientRect().width);
-          const ny = clamp(p.y - d.offset.y, 0, stageH - d.el.getBoundingClientRect().height);
-          // yeni pozisyon
-          d.v = { x: (nx - d.pos.x) * 60, y: (ny - d.pos.y) * 60 }; // release hızı (px/s) ~ son delta * fps varsayımı
-          d.pos.x = nx; d.pos.y = ny;
-          place(d.el, d.pos.x, d.pos.y);
-          prev = p;
-        };
-        const onUp = ()=>{
-          d.drag = false;
-          d.el.classList.remove('dragging');
-          d.el.classList.remove('hovered');
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('touchmove', onMove);
-          window.removeEventListener('mouseup', onUp);
-          window.removeEventListener('touchend', onUp);
-        };
+    function loop(){
+      const now = performance.now()
+      const d = DIFFS[els.difficulty.value]
 
-        d.el.addEventListener('mousedown', onDown);
-        d.el.addEventListener('touchstart', onDown, {passive:false});
-        d.el.addEventListener('mouseenter', ()=> d.el.classList.add('hovered'));
-        d.el.addEventListener('mouseleave', ()=> !d.drag && d.el.classList.remove('hovered'));
-      }
+      if(state.running){
+        state.time = Math.max(0, state.time - 1/60)
+        if(state.time <= 0){ end(); updateHUD(); return }
 
-      function getPoint(e){
-        if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        return { x: e.clientX, y: e.clientY };
-      }
-      function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-
-      function spawnStars(n){
-        for(let i=0;i<n;i++){
-          const s = document.createElement('div');
-          s.className='star';
-          const size = Math.random() < 0.15 ? 3 : 2;
-          s.style.width = s.style.height = size+'px';
-          s.style.left = Math.random()*100+'%';
-          s.style.top  = Math.random()*100+'%';
-          s.style.opacity = (0.4 + Math.random()*0.6).toFixed(2);
-          stage.appendChild(s);
-          twinkle(s);
+        if(now >= state.nextMoveAt){
+          positionTarget()
+          // hareket frekansını zorluk ve seri sayısına göre hızlandır
+          const speedUp = Math.max(0.6, 1 - Math.min(state.streak, 20) * 0.02)
+          state.nextMoveAt = now + d.moveDelay * speedUp
         }
       }
-      function twinkle(el){
-        const dur = 2000 + Math.random()*3000;
-        let dir = 1, o = parseFloat(el.style.opacity);
-        setInterval(()=>{
-          o += dir * 0.08;
-          if(o>=1){ o=1; dir=-1; }
-          if(o<=0.25){ o=0.25; dir=1; }
-          el.style.opacity = o.toFixed(2);
-        }, dur/20);
+
+      updateHUD()
+      state.loop = requestAnimationFrame(loop)
+    }
+
+    function onHit(e){
+      e.stopPropagation()
+      const now = performance.now()
+      const d = DIFFS[els.difficulty.value]
+
+      const dt = now - state.lastHitAt
+      state.lastHitAt = now
+
+      // seri & çarpan
+      if(dt < 650){
+        state.streak = Math.min(state.streak + 1, 50)
+        if(state.streak % 5 === 0) state.mult = Math.min(state.mult + 1, 10)
+      } else {
+        state.streak = 1
       }
-    })();
+
+      const add = d.bonus * state.mult
+      state.score += add
+      toast('+' + add, e.clientX || rand(20, state.rect.width-20), e.clientY || 28, 'good')
+      addClass(els.target, 'pulse'); setTimeout(()=>removeClass(els.target,'pulse'), 300)
+      ping(1200 - state.mult*60, 0.04)
+
+      // anında yeni konum
+      positionTarget()
+      state.nextMoveAt = performance.now() + d.moveDelay * Math.max(0.6, 1 - state.streak * 0.02)
+      updateHUD()
+    }
+
+    function onMiss(){
+      if(!state.running) return
+      const d = DIFFS[els.difficulty.value]
+      if(d.missPenalty>0){
+        state.streak = 0
+        state.mult = 1
+        state.score = Math.max(0, state.score - d.missPenalty)
+        toast('-' + d.missPenalty, state.rect.width-30, 30, 'bad')
+        ping(220, 0.03)
+        updateHUD()
+      }
+    }
+
+    function positionTarget(center=false){
+      measure()
+      const d = DIFFS[els.difficulty.value]
+      const r = d.size/2 + 4
+      const x = center ? state.rect.width/2 : rand(r, state.rect.width - r)
+      const y = center ? state.rect.height/2 : rand(r, state.rect.height - r)
+      els.target.style.left = x + 'px'
+      els.target.style.top  = y + 'px'
+    }
+
+    function updateHUD(){
+      els.score.textContent = state.score
+      els.time.textContent = state.time.toFixed(1)
+      els.mult.textContent = 'x' + state.mult
+    }
+
+    function toast(txt, x, y, kind=''){
+      const t = document.createElement('div')
+      t.className = 'toast' + (kind ? ' ' + kind : '')
+      t.textContent = txt
+      els.toasts.appendChild(t)
+      t.style.left = (x-10) + 'px'
+      t.style.top  = (y-10) + 'px'
+      setTimeout(()=> t.remove(), 620)
+    }
+
+    function hintToast(text){ toast(text, 24, 32) }
+
+    function addClass(el, c){ el.classList.add(c) }
+    function removeClass(el, c){ el.classList.remove(c) }
+
+    function rand(min, max){ return Math.random()*(max-min)+min }
+
+    // --- basit ses efekti ---
+    function ensureAudio(){
+      if(state.osc) return
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const gain = ctx.createGain(); gain.gain.value = 0.0001; gain.connect(ctx.destination)
+      state.osc = ctx; state.gain = gain
+    }
+    function ping(freq=880, dur=0.05){
+      try{
+        ensureAudio()
+        const ctx = state.osc
+        const osc = ctx.createOscillator()
+        const g = ctx.createGain()
+        osc.type = 'triangle'; osc.frequency.value = freq
+        g.gain.value = 0.0001
+        osc.connect(g); g.connect(state.gain)
+        const t = ctx.currentTime
+        osc.start(t)
+        g.gain.exponentialRampToValueAtTime(0.15, t + 0.01)
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+        osc.stop(t + dur + 0.02)
+      }catch{ /* sessizce geç */ }
+    }
+
+    // İlk konum
+    positionTarget(true)
+    init()
+  })()
   </script>
 </body>
 </html>
