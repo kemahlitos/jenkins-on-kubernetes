@@ -4,10 +4,18 @@
     <meta charset="utf-8">
     <title>Hello</title>
     <style>
+      @keyframes gradientMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
       body {
         margin: 0;
         font-family: 'Segoe UI', sans-serif;
-        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        background: linear-gradient(270deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
+        background-size: 600% 600%;
+        animation: gradientMove 20s ease infinite;
         color: #fff;
         text-align: center;
         min-height: 100vh;
@@ -16,15 +24,18 @@
         justify-content: center;
         align-items: center;
       }
+
       h1 {
-        font-size: 3rem;
+        font-size: 3.5rem;
         margin-bottom: 0.5rem;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+        text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
       }
+
       p {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         margin-bottom: 2rem;
       }
+
       .logos {
         display: flex;
         gap: 40px;
@@ -32,20 +43,31 @@
         align-items: center;
         margin-bottom: 2rem;
       }
+
       .logos img {
-        height: 80px;
-        transition: transform 0.3s ease;
+        height: 90px;
+        transition: transform 0.4s ease, filter 0.4s ease;
+        filter: drop-shadow(0 0 5px #0ff);
       }
+
       .logos img:hover {
-        transform: scale(1.2) rotate(5deg);
+        transform: scale(1.2) rotate(10deg);
+        filter: drop-shadow(0 0 20px #00ffff);
       }
+
       footer {
         margin-top: auto;
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: bold;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
         text-transform: uppercase;
-        opacity: 0.85;
+        text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
+        animation: neonPulse 2s infinite alternate;
+      }
+
+      @keyframes neonPulse {
+        from { text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff; }
+        to { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
       }
     </style>
   </head>
