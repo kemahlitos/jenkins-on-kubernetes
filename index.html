@@ -1,8 +1,61 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>Hello</title></head>
-  <body style="font-family: sans-serif">
+<html lang="tr">
+  <head>
+    <meta charset="utf-8">
+    <title>Hello</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: #fff;
+        text-align: center;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+      }
+      p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+      }
+      .logos {
+        display: flex;
+        gap: 40px;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      .logos img {
+        height: 80px;
+        transition: transform 0.3s ease;
+      }
+      .logos img:hover {
+        transform: scale(1.2) rotate(5deg);
+      }
+      footer {
+        margin-top: auto;
+        font-size: 1rem;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logos">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes Logo">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins Logo">
+    </div>
     <h1>Hello from Jenkins + K8s!</h1>
     <p>Version: 1.6</p>
+    <footer>🚀 By Yusuf Kemahlı</footer>
   </body>
 </html>
