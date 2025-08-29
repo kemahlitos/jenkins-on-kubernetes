@@ -1,83 +1,299 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8">
-    <title>Hello</title>
-    <style>
-      @keyframes gradientMove {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
+<head>
+  <meta charset="utf-8" />
+  <title>Hello</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg-a:#1e3c72; --bg-b:#2a5298; --bg-c:#6a11cb; --bg-d:#2575fc;
+    }
 
-      body {
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        background: linear-gradient(270deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
-        background-size: 600% 600%;
-        animation: gradientMove 20s ease infinite;
-        color: #fff;
-        text-align: center;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes neonPulse {
+      from { text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff; }
+      to   { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+    }
 
-      h1 {
-        font-size: 3.5rem;
-        margin-bottom: 0.5rem;
-        text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
-      }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      color:#fff;
+      overflow:hidden; /* zero-g playground */
+      background: linear-gradient(270deg, var(--bg-a), var(--bg-b), var(--bg-c), var(--bg-d));
+      background-size: 600% 600%;
+      animation: gradientMove 22s ease infinite;
+    }
 
-      p {
-        font-size: 1.3rem;
-        margin-bottom: 2rem;
-      }
+    /* üst metinler */
+    .hud{
+      position: fixed;
+      top: 24px; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 10;
+      user-select: none;
+      pointer-events: none;
+    }
+    h1{
+      margin: 0 0 8px 0;
+      font-size: clamp(28px, 5vw, 56px);
+      letter-spacing: .5px;
+      text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
+    }
+    .ver{
+      opacity:.9;
+      font-size: 14px;
+    }
+    footer{
+      position: fixed;
+      bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
+      animation: neonPulse 2s infinite alternate;
+      user-select: none;
+      pointer-events: none;
+    }
 
-      .logos {
-        display: flex;
-        gap: 40px;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 2rem;
-      }
+    /* zero-g sahne */
+    .stage{
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
 
-      .logos img {
-        height: 90px;
-        transition: transform 0.4s ease, filter 0.4s ease;
-        filter: drop-shadow(0 0 5px #0ff);
-      }
+    /* sürüklenen objeler */
+    .drifter{
+      position: absolute;
+      width: clamp(70px, 12vw, 130px);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      backdrop-filter: blur(2px);
+      transition: transform .15s ease;
+      cursor: grab;
+      will-change: transform, left, top;
+    }
+    .drifter:active{ cursor: grabbing; }
 
-      .logos img:hover {
-        transform: scale(1.2) rotate(10deg);
-        filter: drop-shadow(0 0 20px #00ffff);
-      }
+    .drifter img{
+      max-width: 82%;
+      max-height: 82%;
+      filter: drop-shadow(0 0 6px rgba(0,255,255,.8));
+      pointer-events: none; /* tıklama kapsayıcıya gitsin */
+      user-drag: none; -webkit-user-drag: none; user-select:none;
+    }
 
-      footer {
-        margin-top: auto;
-        font-size: 1.1rem;
-        font-weight: bold;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
-        animation: neonPulse 2s infinite alternate;
-      }
+    /* hover ışıltısı (sürüklemede de hafif büyüsün) */
+    .drifter.hovered,
+    .drifter.dragging {
+      transform: scale(1.08) rotate(2deg);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08) inset,
+        0 0 18px rgba(0,255,255,.65);
+    }
 
-      @keyframes neonPulse {
-        from { text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff; }
-        to { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="logos">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes Logo">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins Logo">
-    </div>
+    /* küçük parıldayan parçacıklar – zero-g hissi */
+    .star{
+      position:absolute; border-radius:50%;
+      opacity:.7;
+      filter: blur(0.5px);
+      background: radial-gradient(circle, #fff, rgba(255,255,255,0.2) 60%, transparent 70%);
+      width:2px; height:2px;
+      pointer-events:none;
+    }
+
+    /* erişilebilirlik ipucu */
+    .hint{
+      position: fixed;
+      bottom: 70px; right: 18px;
+      font-size: 12px;
+      opacity: .75;
+      background: rgba(0,0,0,.25);
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.15);
+      user-select: none;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .drifter, h1, footer { transition: none; animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
     <h1>Hello from Jenkins + K8s!</h1>
-    <p>Version: 1.6</p>
-    <footer>🚀 By Yusuf Kemahlı</footer>
-  </body>
+    <div class="ver">Version: 1.6</div>
+  </div>
+
+  <div class="stage" id="stage" aria-label="Zero-G sahnesi">
+    <!-- Drifter: Kubernetes -->
+    <div class="drifter" id="k8s" aria-label="Kubernetes logosu" title="Kubernetes">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes" />
+    </div>
+    <!-- Drifter: Jenkins -->
+    <div class="drifter" id="jenkins" aria-label="Jenkins logosu" title="Jenkins">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins" />
+    </div>
+  </div>
+
+  <div class="hint">Sürükleyip bırak, fırlat gitsin 🚀</div>
+  <footer>🚀 By Yusuf Kemahlı</footer>
+
+  <script>
+    // Basit zero-g fiziği: sürtünme düşük, yerçekimi yok, duvarlarda esnek çarpışma.
+    (function(){
+      const stage = document.getElementById('stage');
+      const drifters = [
+        { el: document.getElementById('k8s'),  v: randVel(),  pos: {x: 120, y: 120}, r: 0 },
+        { el: document.getElementById('jenkins'), v: randVel(), pos: {x: 320, y: 220}, r: 0 }
+      ];
+
+      // bir avuç yıldız – ambience
+      spawnStars(70);
+
+      let stageW = stage.clientWidth, stageH = stage.clientHeight;
+      window.addEventListener('resize', ()=>{ stageW = stage.clientWidth; stageH = stage.clientHeight; });
+
+      // başlangıç konumlarını rastgele biraz dağıt
+      drifters.forEach((d,i)=>{
+        const rect = d.el.getBoundingClientRect();
+        const w = rect.width || 100, h = rect.height || 100;
+        d.pos.x = (i===0 ? stageW*0.25 : stageW*0.65);
+        d.pos.y = (i===0 ? stageH*0.35 : stageH*0.55);
+        place(d.el, d.pos.x, d.pos.y);
+        enableDrag(d);
+      });
+
+      // ana döngü
+      let last = performance.now();
+      function tick(now){
+        const dt = Math.min(0.04, (now - last) / 1000); // s
+        last = now;
+
+        drifters.forEach(d=>{
+          if(d.drag) return; // sürüklenirken fizik durur
+
+          // hız uygula (zero-g)
+          d.pos.x += d.v.x * dt;
+          d.pos.y += d.v.y * dt;
+          d.r += (d.v.x + d.v.y) * 0.0008; // hafif dönme hissi
+
+          // kenar çarpışması (elastik, az sönüm)
+          const rect = d.el.getBoundingClientRect();
+          const w = rect.width, h = rect.height;
+
+          if(d.pos.x < 0){ d.pos.x = 0; d.v.x = -d.v.x*0.98; }
+          if(d.pos.y < 0){ d.pos.y = 0; d.v.y = -d.v.y*0.98; }
+          if(d.pos.x + w > stageW){ d.pos.x = stageW - w; d.v.x = -d.v.x*0.98; }
+          if(d.pos.y + h > stageH){ d.pos.y = stageH - h; d.v.y = -d.v.y*0.98; }
+
+          // çok küçük hızları yavaşça sönümlendir (sürüklenmesin diye min sürtünme)
+          const drag = 0.997;
+          d.v.x *= drag; d.v.y *= drag;
+
+          place(d.el, d.pos.x, d.pos.y, d.r);
+        });
+
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // yardımcılar
+      function place(el, x, y, r=0){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform = `translateZ(0) rotate(${r}rad)`; }
+      function randVel(){
+        const speed = 60 + Math.random()*80; // px/s
+        const a = Math.random()*Math.PI*2;
+        return { x: Math.cos(a)*speed, y: Math.sin(a)*speed };
+      }
+
+      function enableDrag(d){
+        let prev = null; // önceki nokta (hız çıkarmak için)
+        const onDown = (e)=>{
+          e.preventDefault();
+          d.drag = true;
+          d.el.classList.add('dragging');
+          prev = getPoint(e);
+          d.offset = {
+            x: prev.x - d.pos.x,
+            y: prev.y - d.pos.y
+          };
+          // hover stili
+          d.el.classList.add('hovered');
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('touchmove', onMove, {passive:false});
+          window.addEventListener('mouseup', onUp);
+          window.addEventListener('touchend', onUp);
+        };
+        const onMove = (e)=>{
+          if(!d.drag) return;
+          e.preventDefault();
+          const p = getPoint(e);
+          const nx = clamp(p.x - d.offset.x, 0, stageW - d.el.getBoundingClientRect().width);
+          const ny = clamp(p.y - d.offset.y, 0, stageH - d.el.getBoundingClientRect().height);
+          // yeni pozisyon
+          d.v = { x: (nx - d.pos.x) * 60, y: (ny - d.pos.y) * 60 }; // release hızı (px/s) ~ son delta * fps varsayımı
+          d.pos.x = nx; d.pos.y = ny;
+          place(d.el, d.pos.x, d.pos.y);
+          prev = p;
+        };
+        const onUp = ()=>{
+          d.drag = false;
+          d.el.classList.remove('dragging');
+          d.el.classList.remove('hovered');
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          window.removeEventListener('touchend', onUp);
+        };
+
+        d.el.addEventListener('mousedown', onDown);
+        d.el.addEventListener('touchstart', onDown, {passive:false});
+        d.el.addEventListener('mouseenter', ()=> d.el.classList.add('hovered'));
+        d.el.addEventListener('mouseleave', ()=> !d.drag && d.el.classList.remove('hovered'));
+      }
+
+      function getPoint(e){
+        if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+      }
+      function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+      function spawnStars(n){
+        for(let i=0;i<n;i++){
+          const s = document.createElement('div');
+          s.className='star';
+          const size = Math.random() < 0.15 ? 3 : 2;
+          s.style.width = s.style.height = size+'px';
+          s.style.left = Math.random()*100+'%';
+          s.style.top  = Math.random()*100+'%';
+          s.style.opacity = (0.4 + Math.random()*0.6).toFixed(2);
+          stage.appendChild(s);
+          twinkle(s);
+        }
+      }
+      function twinkle(el){
+        const dur = 2000 + Math.random()*3000;
+        let dir = 1, o = parseFloat(el.style.opacity);
+        setInterval(()=>{
+          o += dir * 0.08;
+          if(o>=1){ o=1; dir=-1; }
+          if(o<=0.25){ o=0.25; dir=1; }
+          el.style.opacity = o.toFixed(2);
+        }, dur/20);
+      }
+    })();
+  </script>
+</body>
 </html>
