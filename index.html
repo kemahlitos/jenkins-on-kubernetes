@@ -3,94 +3,421 @@
 <head>
   <meta charset="utf-8" />
   <title>Hello</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      margin: 0;
-      background: linear-gradient(270deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
+    :root{
+      --bg-a:#1e3c72; --bg-b:#2a5298; --bg-c:#6a11cb; --bg-d:#2575fc;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes neonPulse {
+      from { text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff; }
+      to   { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      color:#fff;
+      overflow:hidden; /* zero-g playground */
+      background: linear-gradient(270deg, var(--bg-a), var(--bg-b), var(--bg-c), var(--bg-d));
       background-size: 600% 600%;
-      animation: bgmove 20s ease infinite;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-      color: #fff;
+      animation: gradientMove 22s ease infinite;
+    }
+
+    /* üst metinler */
+    .hud{
+      position: fixed;
+      top: 24px; left: 50%;
+      transform: translateX(-50%);
       text-align: center;
-      height: 100vh;
-    }
-    @keyframes bgmove {
-      0% {background-position:0% 50%}
-      50% {background-position:100% 50%}
-      100% {background-position:0% 50%}
-    }
-    .drifter {
-      position: absolute;
-      width: 100px;
-      cursor: grab;
-    }
-    .drifter img {
-      width: 100%;
-      filter: drop-shadow(0 0 6px cyan);
-    }
-    h1 {
-      margin-top: 20px;
-      font-size: 2.5rem;
-      text-shadow: 0 0 10px #0ff;
-    }
-    footer {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      font-weight: bold;
-      text-shadow: 0 0 15px magenta;
-    }
-    /* kahve damlası */
-    .drop {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #4b2e18, #2b170a);
-      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+      z-index: 10;
+      user-select: none;
       pointer-events: none;
-      animation: fall linear forwards;
     }
-    @keyframes fall {
-      to { transform: translateY(100vh); opacity: 0; }
+    h1{
+      margin: 0 0 8px 0;
+      font-size: clamp(28px, 5vw, 56px);
+      letter-spacing: .5px;
+      text-shadow: 0 0 10px #00f, 0 0 20px #0ff, 0 0 40px #0ff;
+    }
+    .ver{
+      opacity:.9;
+      font-size: 14px;
+    }
+    footer{
+      position: fixed;
+      bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff;
+      animation: neonPulse 2s infinite alternate;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* zero-g sahne */
+    .stage{
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* sürüklenen objeler */
+    .drifter{
+      position: absolute;
+      width: clamp(70px, 12vw, 130px);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      backdrop-filter: blur(2px);
+      transition: transform .15s ease;
+      cursor: grab;
+      will-change: transform, left, top;
+      z-index: 3;
+    }
+    .drifter:active{ cursor: grabbing; }
+
+    .drifter img{
+      max-width: 82%;
+      max-height: 82%;
+      filter: drop-shadow(0 0 6px rgba(0,255,255,.8));
+      pointer-events: none;
+      user-drag: none; -webkit-user-drag: none; user-select:none;
+    }
+
+    .drifter.hovered,
+    .drifter.dragging {
+      transform: scale(1.08) rotate(2deg);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08) inset,
+        0 0 18px rgba(0,255,255,.65);
+    }
+
+    /* kahve katmanı */
+    .coffee-layer{
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2; /* drifterların altında, splash alt-üst düzeni için yeterli */
+    }
+
+    /* kahve damlası */
+    .drop{
+      position: absolute;
+      width: var(--s,6px); height: var(--s,6px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #7b3f00, #3d1f00 70%);
+      box-shadow: 0 0 6px rgba(75,40,0,.35);
+      transform: translate(-50%, -50%);
+      animation: fall var(--dur,1.4s) linear forwards;
+      will-change: transform, top, opacity;
+    }
+
+    /* dibe vurunca sıçrama */
+    .splash{
+      position: absolute;
+      left: 0; top: 0;
+      width: 12px; height: 12px;
+      transform: translate(-50%, -50%) scale(1);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(123,63,0,.9) 0%, rgba(123,63,0,.4) 45%, rgba(123,63,0,0) 60%);
+      filter: blur(0.3px);
+      animation: splash 600ms ease-out forwards;
+    }
+
+    /* zeminde kahve lekesi */
+    .stain{
+      position: absolute;
+      left: 0; top: 0;
+      width: var(--w,120px); height: var(--h,60px);
+      transform: translate(-50%, -50%) rotate(var(--rot,0deg));
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(80,40,0,.55) 0%, rgba(80,40,0,.35) 45%, rgba(80,40,0,.1) 70%, rgba(80,40,0,0) 80%);
+      filter: blur(1.2px) saturate(1.1);
+      opacity: .8;
+      animation: stainFade 6s ease-out forwards;
+    }
+
+    @keyframes fall{
+      to { top: 100%; opacity: .95; }
+    }
+    @keyframes splash{
+      0%   { transform: translate(-50%, -50%) scale(0.6); opacity: .95; }
+      70%  { transform: translate(-50%, -50%) scale(1.8); opacity: .7; }
+      100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+    }
+    @keyframes stainFade{
+      0% { opacity: .9; }
+      90%{ opacity: .35; }
+      100%{ opacity: 0; }
+    }
+
+    /* küçük parıldayan yıldızlar – zero-g hissi */
+    .star{
+      position:absolute; border-radius:50%;
+      opacity:.7;
+      filter: blur(0.5px);
+      background: radial-gradient(circle, #fff, rgba(255,255,255,0.2) 60%, transparent 70%);
+      width:2px; height:2px;
+      pointer-events:none;
+    }
+
+    .hint{
+      position: fixed;
+      bottom: 70px; right: 18px;
+      font-size: 12px;
+      opacity: .75;
+      background: rgba(0,0,0,.25);
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.15);
+      user-select: none;
+      z-index: 4;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .drifter, h1, footer { transition: none; animation: none; }
+      .drop, .splash, .stain { animation-duration: .01ms !important; }
     }
   </style>
 </head>
 <body>
-  <h1>Hello from Jenkins + K8s!</h1>
-
-  <div class="drifter" id="k8s" style="left:20%; top:40%">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes">
-  </div>
-  <div class="drifter" id="jenkins" style="left:60%; top:40%">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins">
+  <div class="hud">
+    <h1>Hello from Jenkins + K8s!</h1>
+    <div class="ver">Version: 1.6</div>
   </div>
 
+  <div class="stage" id="stage" aria-label="Zero-G sahnesi">
+    <!-- Drifter: Kubernetes -->
+    <div class="drifter" id="k8s" aria-label="Kubernetes logosu" title="Kubernetes">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Kubernetes_logo.svg" alt="Kubernetes" />
+    </div>
+    <!-- Drifter: Jenkins -->
+    <div class="drifter" id="jenkins" aria-label="Jenkins logosu (tıklayınca kahve dökülür)" title="Jenkins">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" alt="Jenkins" />
+    </div>
+    <!-- Kahve animasyon katmanı -->
+    <div class="coffee-layer" id="coffeeLayer" aria-hidden="true"></div>
+  </div>
+
+  <div class="hint">Sürükleyip bırak, fırlat gitsin 🚀 • Jenkins’e tıkla: kahve dökülsün ☕️</div>
   <footer>🚀 By Yusuf Kemahlı</footer>
 
   <script>
-    const jenkins = document.getElementById('jenkins');
+    // Zero-g sürükleme + kenarlarda sekme
+    (function(){
+      const stage = document.getElementById('stage');
+      const coffeeLayer = document.getElementById('coffeeLayer');
+      const drifters = [
+        { el: document.getElementById('k8s'),    v: randVel(),  pos: {x: 120, y: 120}, r: 0 },
+        { el: document.getElementById('jenkins'), v: randVel(), pos: {x: 320, y: 220}, r: 0 }
+      ];
 
-    jenkins.addEventListener('click', (e)=>{
-      const rect = jenkins.getBoundingClientRect();
-      const centerX = rect.left + rect.width/2;
-      const topY = rect.bottom;
-      // 6 damla üret
-      for(let i=0;i<6;i++){
-        createDrop(centerX + (Math.random()*40-20), topY);
+      spawnStars(70);
+
+      let stageW = stage.clientWidth, stageH = stage.clientHeight;
+      window.addEventListener('resize', ()=>{ stageW = stage.clientWidth; stageH = stage.clientHeight; });
+
+      drifters.forEach((d,i)=>{
+        const rect = d.el.getBoundingClientRect();
+        const w = rect.width || 100, h = rect.height || 100;
+        d.pos.x = (i===0 ? stageW*0.25 : stageW*0.65) - w/2;
+        d.pos.y = (i===0 ? stageH*0.35 : stageH*0.55) - h/2;
+        place(d.el, d.pos.x, d.pos.y);
+        enableDrag(d);
+      });
+
+      // Jenkins'e tıklayınca kahve dökülmesi
+      const jenkins = document.getElementById('jenkins');
+      jenkins.addEventListener('click', (e)=>{
+        // sürükleme esnasında yanlışlıkla tetiklenmesin
+        const d = drifters.find(x=>x.el===jenkins);
+        if(d?.drag) return;
+
+        const rect = jenkins.getBoundingClientRect();
+        const startX = rect.left + rect.width/2;
+        const startY = rect.top + rect.height*0.9; // alt kenara yakın
+        pourCoffee(startX, startY);
+      });
+
+      // ana fizik döngüsü
+      let last = performance.now();
+      function tick(now){
+        const dt = Math.min(0.04, (now - last) / 1000);
+        last = now;
+
+        drifters.forEach(d=>{
+          if(d.drag) return;
+          d.pos.x += d.v.x * dt;
+          d.pos.y += d.v.y * dt;
+          d.r += (d.v.x + d.v.y) * 0.0008;
+
+          const rect = d.el.getBoundingClientRect();
+          const w = rect.width, h = rect.height;
+
+          if(d.pos.x < 0){ d.pos.x = 0; d.v.x = -d.v.x*0.98; }
+          if(d.pos.y < 0){ d.pos.y = 0; d.v.y = -d.v.y*0.98; }
+          if(d.pos.x + w > stageW){ d.pos.x = stageW - w; d.v.x = -d.v.x*0.98; }
+          if(d.pos.y + h > stageH){ d.pos.y = stageH - h; d.v.y = -d.v.y*0.98; }
+
+          const drag = 0.997;
+          d.v.x *= drag; d.v.y *= drag;
+
+          place(d.el, d.pos.x, d.pos.y, d.r);
+        });
+
+        requestAnimationFrame(tick);
       }
-    });
+      requestAnimationFrame(tick);
 
-    function createDrop(x,y){
-      const drop = document.createElement('div');
-      drop.className = 'drop';
-      drop.style.left = x + 'px';
-      drop.style.top = y + 'px';
-      drop.style.animationDuration = (1.5 + Math.random()*1.5) + 's';
-      document.body.appendChild(drop);
-      drop.addEventListener('animationend', ()=> drop.remove());
-    }
+      // Yardımcılar
+      function place(el, x, y, r=0){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform = `translateZ(0) rotate(${r}rad)`; }
+      function randVel(){
+        const speed = 60 + Math.random()*80;
+        const a = Math.random()*Math.PI*2;
+        return { x: Math.cos(a)*speed, y: Math.sin(a)*speed };
+      }
+      function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+      function enableDrag(d){
+        let prev = null;
+        const onDown = (e)=>{
+          e.preventDefault();
+          d.drag = true;
+          d.el.classList.add('dragging','hovered');
+          prev = getPoint(e);
+          d.offset = { x: prev.x - d.pos.x, y: prev.y - d.pos.y };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('touchmove', onMove, {passive:false});
+          window.addEventListener('mouseup', onUp);
+          window.addEventListener('touchend', onUp);
+        };
+        const onMove = (e)=>{
+          if(!d.drag) return;
+          e.preventDefault();
+          const p = getPoint(e);
+          const nx = clamp(p.x - d.offset.x, 0, stageW - d.el.getBoundingClientRect().width);
+          const ny = clamp(p.y - d.offset.y, 0, stageH - d.el.getBoundingClientRect().height);
+          d.v = { x: (nx - d.pos.x) * 60, y: (ny - d.pos.y) * 60 };
+          d.pos.x = nx; d.pos.y = ny;
+          place(d.el, d.pos.x, d.pos.y);
+          prev = p;
+        };
+        const onUp = ()=>{
+          d.drag = false;
+          d.el.classList.remove('dragging','hovered');
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          window.removeEventListener('touchend', onUp);
+        };
+
+        d.el.addEventListener('mousedown', onDown);
+        d.el.addEventListener('touchstart', onDown, {passive:false});
+        d.el.addEventListener('mouseenter', ()=> d.el.classList.add('hovered'));
+        d.el.addEventListener('mouseleave', ()=> !d.drag && d.el.classList.remove('hovered'));
+      }
+
+      function getPoint(e){
+        if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+      }
+
+      function spawnStars(n){
+        for(let i=0;i<n;i++){
+          const s = document.createElement('div');
+          s.className='star';
+          const size = Math.random() < 0.15 ? 3 : 2;
+          s.style.width = s.style.height = size+'px';
+          s.style.left = Math.random()*100+'%';
+          s.style.top  = Math.random()*100+'%';
+          s.style.opacity = (0.4 + Math.random()*0.6).toFixed(2);
+          stage.appendChild(s);
+          twinkle(s);
+        }
+      }
+      function twinkle(el){
+        const dur = 2000 + Math.random()*3000;
+        let dir = 1, o = parseFloat(el.style.opacity);
+        setInterval(()=>{
+          o += dir * 0.08;
+          if(o>=1){ o=1; dir=-1; }
+          if(o<=0.25){ o=0.25; dir=1; }
+          el.style.opacity = o.toFixed(2);
+        }, dur/20);
+      }
+
+      // ---- KAHVE DÖKÜLMESİ ----
+      function pourCoffee(startX, startY){
+        const drops = 28 + Math.floor(Math.random()*14); // 28-42 damla
+        const maxSpread = 70; // yatay saçılma
+        const height = window.innerHeight;
+
+        for(let i=0;i<drops;i++){
+          const d = document.createElement('div');
+          d.className = 'drop';
+          const s = 4 + Math.random()*6; // damla boyutu
+          const dur = 900 + Math.random()*900; // düşüş süresi
+          const offsetX = (Math.random()*2-1) * maxSpread;
+          const wind = (Math.random()*2-1) * 30; // hafif rüzgar etkisi
+
+          // başlangıç konumu
+          d.style.setProperty('--s', s+'px');
+          d.style.setProperty('--dur', dur+'ms');
+          d.style.left = (startX + offsetX) + 'px';
+          d.style.top  = (startY + Math.random()*20) + 'px';
+
+          coffeeLayer.appendChild(d);
+
+          // animasyon bittiğinde splash + stain
+          const onEnd = ()=>{
+            d.removeEventListener('animationend', onEnd);
+            const endY = height - 6; // zemine yakın
+            const endX = parseFloat(d.style.left) + wind; // rüzgarla hafif kaydır
+            spawnSplash(endX, endY, s);
+            if(Math.random() < 0.15){ // arada bir büyük leke bırak
+              spawnStain(endX + (Math.random()*60-30), height - 8);
+            }
+            d.remove();
+          };
+          d.addEventListener('animationend', onEnd);
+        }
+      }
+
+      function spawnSplash(x,y,scale=6){
+        const sp = document.createElement('div');
+        sp.className = 'splash';
+        sp.style.left = x+'px';
+        sp.style.top  = y+'px';
+        sp.style.width = sp.style.height = (scale*2)+'px';
+        coffeeLayer.appendChild(sp);
+        sp.addEventListener('animationend', ()=> sp.remove());
+      }
+
+      function spawnStain(x,y){
+        const st = document.createElement('div');
+        st.className = 'stain';
+        const w = 90 + Math.random()*120;
+        const h = w * (0.35 + Math.random()*0.25);
+        st.style.setProperty('--w', w+'px');
+        st.style.setProperty('--h', h+'px');
+        st.style.setProperty('--rot', (Math.random()*60-30)+'deg');
+        st.style.left = x+'px';
+        st.style.top  = y+'px';
+        coffeeLayer.appendChild(st);
+        st.addEventListener('animationend', ()=> st.remove());
+      }
+    })();
   </script>
 </body>
 </html>
