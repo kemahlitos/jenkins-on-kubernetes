@@ -6,6 +6,7 @@ apiVersion: v1
 kind: Pod
 spec:
   serviceAccountName: jenkins
+
   containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
@@ -17,6 +18,7 @@ spec:
           mountPath: /kaniko/.docker
         - name: workspace-volume
           mountPath: /home/jenkins/agent
+
     - name: kubectl
       image: bitnami/kubectl:1.30-debian-12
       command: ["/bin/sh"]
@@ -27,11 +29,13 @@ spec:
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
+
     - name: jnlp
       image: jenkins/inbound-agent:3327.v868139a_d00e0-6
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
+
   volumes:
     - name: kaniko-docker-config
       emptyDir: {}
@@ -48,11 +52,12 @@ spec:
   }
 
   parameters {
-    string(name: 'TAG', defaultValue: '', description: 'İsteğe bağlı image tag (boşsa otomatik üretilecek)')
+    string(name: 'TAG',          defaultValue: '',               description: 'İsteğe bağlı image tag (boşsa otomatik)')
+    string(name: 'INGRESS_HOST', defaultValue: 'hello-web.local', description: 'Ingress FQDN (örn. hello-web.local)')
   }
 
   environment {
-    DOCKERHUB_NAMESPACE = "kemahlitos"
+    DOCKERHUB_NAMESPACE = "kemahlitos"   // Docker Hub kullanıcı adın
     APP_NAME            = "hello-web"
     REGISTRY            = "docker.io"
     NAMESPACE           = "demo"
@@ -81,7 +86,7 @@ cat > /kaniko/.docker/config.json <<EOF
 {"auths":{"https://index.docker.io/v1/":{"auth":"$AUTH"}}}
 EOF
 
-# 2) TAG'i garanti üret: parametre > git SHA > fallback
+# 2) TAG: parametre > git SHA > fallback
 if [ -z "${TAG:-}" ]; then
   SHORT_SHA="$(git rev-parse --short=7 HEAD 2>/dev/null || true)"
   : "${SHORT_SHA:=local}"
@@ -90,7 +95,7 @@ if [ -z "${TAG:-}" ]; then
 fi
 echo "Using TAG: $TAG"
 
-# 3) IMAGE ismi
+# 3) IMAGE
 : "${REGISTRY:?REGISTRY boş}"
 : "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
 : "${APP_NAME:?APP_NAME boş}"
@@ -98,7 +103,6 @@ IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
 echo "IMAGE=${IMAGE}" > "$WORKSPACE/image.env"
 echo "Pushing: ${IMAGE}"
 
-# 4) Kaniko build & push
 /kaniko/executor \
   --context "$WORKSPACE" \
   --dockerfile "$WORKSPACE/Dockerfile" \
@@ -110,32 +114,119 @@ echo "Pushing: ${IMAGE}"
       }
     }
 
-    stage('Deploy to Kubernetes') {
+    stage('Deploy (Deployment + Service + Ingress)') {
       steps {
         container('kubectl') {
           sh '''#!/bin/sh
 set -eux
 . "$WORKSPACE/image.env"
 
-# Namespace varsa geç, yoksa oluştur
-kubectl get ns "${NAMESPACE}" || kubectl create ns "${NAMESPACE}"
+# Manifests dizini
+mkdir -p "$WORKSPACE/k8s"
 
-# İlk sefer: deploy + service oluştur (idempotent)
-kubectl -n "${NAMESPACE}" create deploy "${APP_NAME}" --image="${IMAGE}" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# --- Deployment (RollingUpdate + probe + explicit pullPolicy) ---
+cat > "$WORKSPACE/k8s/deployment.yaml" <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      containers:
+      - name: ${APP_NAME}
+        image: ${IMAGE}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+EOF
 
-# Her seferinde imajı güncelle ve rollout bekle
-kubectl -n "${NAMESPACE}" set image "deploy/${APP_NAME}" "${APP_NAME}=${IMAGE}" --record
+# --- Service (ClusterIP) ---
+cat > "$WORKSPACE/k8s/service.yaml" <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  type: ClusterIP
+  selector:
+    app: ${APP_NAME}
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+EOF
+
+# --- Ingress ---
+cat > "$WORKSPACE/k8s/ingress.yaml" <<EOF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ${INGRESS_HOST}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ${APP_NAME}
+            port:
+              number: 80
+EOF
+
+# Uygula
+kubectl apply -f "$WORKSPACE/k8s/deployment.yaml"
+kubectl apply -f "$WORKSPACE/k8s/service.yaml"
+kubectl apply -f "$WORKSPACE/k8s/ingress.yaml"
+
+# Rollout tamamlanana kadar bekle
 kubectl -n "${NAMESPACE}" rollout status "deploy/${APP_NAME}"
 
-# Service yoksa oluştur (NodePort)
-kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" || \
-  kubectl -n "${NAMESPACE}" expose deploy/"${APP_NAME}" --port=80 --type=NodePort
-
-# NodePort'u yaz
-PORT="$(kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" -o jsonpath='{.spec.ports[0].nodePort}')"
-echo "NODEPORT=${PORT}" > "$WORKSPACE/service.env"
-echo "NodePort: ${PORT}"
+# Ingress erişim ipucu (LB/hostname/hosts)
+LB_IP="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+LB_HOST="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
+if [ -n "${LB_IP}" ]; then
+  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
+  echo "INGRESS_HINT=DNS A kaydı: ${INGRESS_HOST} -> ${LB_IP} (veya /etc/hosts)" >> "$WORKSPACE/ingress.env"
+elif [ -n "${LB_HOST}" ]; then
+  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
+  echo "INGRESS_HINT=DNS CNAME: ${INGRESS_HOST} -> ${LB_HOST}" >> "$WORKSPACE/ingress.env"
+else
+  NODE_IP="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
+  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
+  echo "INGRESS_HINT=/etc/hosts satırı ekle:  ${NODE_IP}  ${INGRESS_HOST}  (ingress-nginx 80/443 dinlemeli)" >> "$WORKSPACE/ingress.env"
+fi
 '''
         }
       }
@@ -146,14 +237,18 @@ echo "NodePort: ${PORT}"
         sh '''#!/bin/sh
 set -eux
 . "$WORKSPACE/image.env"
-. "$WORKSPACE/service.env"
+if [ -f "$WORKSPACE/ingress.env" ]; then . "$WORKSPACE/ingress.env"; fi
+
 echo "Deployed image: ${IMAGE}"
-echo "Kubernetes namespace: ${NAMESPACE}"
-echo "Service: ${APP_NAME}"
-echo "NodePort: ${NODEPORT}"
-echo "Browser URL (any node IP):"
-echo "  http://192.168.64.30:${NODEPORT}"
-echo "  http://192.168.64.31:${NODEPORT}"
+echo "Namespace:      ${NAMESPACE}"
+echo "Service:        ${APP_NAME} (ClusterIP)"
+echo "Ingress host:   ${INGRESS_HOST}"
+echo "Open URL:       ${INGRESS_URL:-http://${INGRESS_HOST}}"
+echo "Hint:           ${INGRESS_HINT:-'Gerekirse /etc/hosts ile host->IP eşlemesi yapın.'}"
+
+echo
+echo "Quick test (lokalden):"
+echo "  curl -H 'Host: ${INGRESS_HOST}' http://<INGRESS-IP>/"
 '''
       }
     }
