@@ -52,12 +52,12 @@ spec:
   }
 
   parameters {
-    string(name: 'TAG',          defaultValue: '',               description: 'İsteğe bağlı image tag (boşsa otomatik)')
-    string(name: 'INGRESS_HOST', defaultValue: 'hello-web.local', description: 'Ingress FQDN (örn. hello-web.local)')
+    string(name: 'TAG',          defaultValue: '',                 description: 'İsteğe bağlı image tag (boşsa otomatik)')
+    string(name: 'INGRESS_HOST', defaultValue: 'hello-web.local',  description: 'Ingress FQDN (örn. hello-web.local)')
   }
 
   environment {
-    DOCKERHUB_NAMESPACE = "kemahlitos"   // Docker Hub kullanıcı adın
+    DOCKERHUB_NAMESPACE = "kemahlitos"
     APP_NAME            = "hello-web"
     REGISTRY            = "docker.io"
     NAMESPACE           = "demo"
@@ -121,7 +121,7 @@ echo "Pushing: ${IMAGE}"
 set -eux
 . "$WORKSPACE/image.env"
 
-# Manifests dizini
+# Manifests
 mkdir -p "$WORKSPACE/k8s"
 
 # --- Deployment (RollingUpdate + probe + explicit pullPolicy) ---
@@ -183,7 +183,7 @@ spec:
     targetPort: 80
 EOF
 
-# --- Ingress ---
+# --- Ingress (nginx) ---
 cat > "$WORKSPACE/k8s/ingress.yaml" <<EOF
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -210,10 +210,10 @@ kubectl apply -f "$WORKSPACE/k8s/deployment.yaml"
 kubectl apply -f "$WORKSPACE/k8s/service.yaml"
 kubectl apply -f "$WORKSPACE/k8s/ingress.yaml"
 
-# Rollout tamamlanana kadar bekle
+# Rollout bekle
 kubectl -n "${NAMESPACE}" rollout status "deploy/${APP_NAME}"
 
-# Ingress erişim ipucu (LB/hostname/hosts)
+# Ingress erişim ipucu
 LB_IP="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
 LB_HOST="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
 if [ -n "${LB_IP}" ]; then
@@ -225,7 +225,7 @@ elif [ -n "${LB_HOST}" ]; then
 else
   NODE_IP="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
   echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
-  echo "INGRESS_HINT=/etc/hosts satırı ekle:  ${NODE_IP}  ${INGRESS_HOST}  (ingress-nginx 80/443 dinlemeli)" >> "$WORKSPACE/ingress.env"
+  echo "INGRESS_HINT=/etc/hosts satırı ekle:  ${NODE_IP}  ${INGRESS_HOST}" >> "$WORKSPACE/ingress.env"
 fi
 '''
         }
@@ -237,7 +237,7 @@ fi
         sh '''#!/bin/sh
 set -eux
 . "$WORKSPACE/image.env"
-if [ -f "$WORKSPACE/ingress.env" ]; then . "$WORKSPACE/ingress.env"; fi
+[ -f "$WORKSPACE/ingress.env" ] && . "$WORKSPACE/ingress.env" || true
 
 echo "Deployed image: ${IMAGE}"
 echo "Namespace:      ${NAMESPACE}"
