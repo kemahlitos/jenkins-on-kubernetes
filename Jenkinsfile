@@ -124,7 +124,7 @@ set -eux
 # Manifests
 mkdir -p "$WORKSPACE/k8s"
 
-# --- Deployment (RollingUpdate + probe + explicit pullPolicy) ---
+# --- Deployment ---
 cat > "$WORKSPACE/k8s/deployment.yaml" <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -213,19 +213,26 @@ kubectl apply -f "$WORKSPACE/k8s/ingress.yaml"
 # Rollout bekle
 kubectl -n "${NAMESPACE}" rollout status "deploy/${APP_NAME}"
 
-# Ingress erişim ipucu
+# Ingress erişim ipucu -> DEĞERLERİ TIRNAKLA YAZ!
 LB_IP="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
 LB_HOST="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
+
 if [ -n "${LB_IP}" ]; then
-  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
-  echo "INGRESS_HINT=DNS A kaydı: ${INGRESS_HOST} -> ${LB_IP} (veya /etc/hosts)" >> "$WORKSPACE/ingress.env"
+  cat > "$WORKSPACE/ingress.env" <<EOF
+INGRESS_URL="http://${INGRESS_HOST}"
+INGRESS_HINT="DNS A kaydı: ${INGRESS_HOST} -> ${LB_IP} (veya /etc/hosts)"
+EOF
 elif [ -n "${LB_HOST}" ]; then
-  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
-  echo "INGRESS_HINT=DNS CNAME: ${INGRESS_HOST} -> ${LB_HOST}" >> "$WORKSPACE/ingress.env"
+  cat > "$WORKSPACE/ingress.env" <<EOF
+INGRESS_URL="http://${INGRESS_HOST}"
+INGRESS_HINT="DNS CNAME: ${INGRESS_HOST} -> ${LB_HOST}"
+EOF
 else
   NODE_IP="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
-  echo "INGRESS_URL=http://${INGRESS_HOST}" > "$WORKSPACE/ingress.env"
-  echo "INGRESS_HINT=/etc/hosts satırı ekle:  ${NODE_IP}  ${INGRESS_HOST}" >> "$WORKSPACE/ingress.env"
+  cat > "$WORKSPACE/ingress.env" <<EOF
+INGRESS_URL="http://${INGRESS_HOST}"
+INGRESS_HINT="/etc/hosts satırı ekle: ${NODE_IP} ${INGRESS_HOST}"
+EOF
 fi
 '''
         }
@@ -245,10 +252,6 @@ echo "Service:        ${APP_NAME} (ClusterIP)"
 echo "Ingress host:   ${INGRESS_HOST}"
 echo "Open URL:       ${INGRESS_URL:-http://${INGRESS_HOST}}"
 echo "Hint:           ${INGRESS_HINT:-'Gerekirse /etc/hosts ile host->IP eşlemesi yapın.'}"
-
-echo
-echo "Quick test (lokalden):"
-echo "  curl -H 'Host: ${INGRESS_HOST}' http://<INGRESS-IP>/"
 '''
       }
     }
