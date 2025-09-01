@@ -213,25 +213,22 @@ kubectl apply -f "$WORKSPACE/k8s/ingress.yaml"
 # Rollout bekle
 kubectl -n "${NAMESPACE}" rollout status "deploy/${APP_NAME}"
 
-# Ingress erişim ipucu -> DEĞERLERİ TIRNAKLA YAZ!
-LB_IP="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
-LB_HOST="$(kubectl -n ingress-nginx get svc -l app.kubernetes.io/name=ingress-nginx -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
+# Ingress erişim bilgisi
+CTRL_TYPE="$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.spec.type}' 2>/dev/null || true)"
+LB_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+LB_HOST="$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
 
-if [ -n "${LB_IP}" ]; then
+if [ "$CTRL_TYPE" = "LoadBalancer" ] && [ -n "${LB_IP}${LB_HOST}" ]; then
   cat > "$WORKSPACE/ingress.env" <<EOF
 INGRESS_URL="http://${INGRESS_HOST}"
-INGRESS_HINT="DNS A kaydı: ${INGRESS_HOST} -> ${LB_IP} (veya /etc/hosts)"
-EOF
-elif [ -n "${LB_HOST}" ]; then
-  cat > "$WORKSPACE/ingress.env" <<EOF
-INGRESS_URL="http://${INGRESS_HOST}"
-INGRESS_HINT="DNS CNAME: ${INGRESS_HOST} -> ${LB_HOST}"
+INGRESS_HINT="DNS'te ${INGRESS_HOST} -> ${LB_IP:-$LB_HOST} eşle"
 EOF
 else
+  HTTP_NODEPORT="$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')"
   NODE_IP="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
   cat > "$WORKSPACE/ingress.env" <<EOF
-INGRESS_URL="http://${INGRESS_HOST}"
-INGRESS_HINT="/etc/hosts satırı ekle: ${NODE_IP} ${INGRESS_HOST}"
+INGRESS_URL="http://${INGRESS_HOST}:${HTTP_NODEPORT}"
+INGRESS_HINT="/etc/hosts satırı: ${NODE_IP} ${INGRESS_HOST}  → sonra tarayıcıdan \${INGRESS_URL}"
 EOF
 fi
 '''
