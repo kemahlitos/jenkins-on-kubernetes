@@ -59,7 +59,6 @@ spec:
   }
 
   stages {
-
     stage('Checkout') {
       steps { checkout scm }
     }
@@ -82,7 +81,7 @@ cat > /kaniko/.docker/config.json <<EOF
 {"auths":{"https://index.docker.io/v1/":{"auth":"$AUTH"}}}
 EOF
 
-# 2) TAG'i garanti üret: parametre > git SHA > fallback
+# 2) TAG üretimi
 if [ -z "${TAG:-}" ]; then
   SHORT_SHA="$(git rev-parse --short=7 HEAD 2>/dev/null || true)"
   : "${SHORT_SHA:=local}"
@@ -92,9 +91,6 @@ fi
 echo "Using TAG: $TAG"
 
 # 3) IMAGE ismi
-: "${REGISTRY:?REGISTRY boş}"
-: "${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE boş}"
-: "${APP_NAME:?APP_NAME boş}"
 IMAGE="${REGISTRY}/${DOCKERHUB_NAMESPACE}/${APP_NAME}:${TAG}"
 echo "IMAGE=${IMAGE}" > "$WORKSPACE/image.env"
 echo "Pushing: ${IMAGE}"
@@ -121,24 +117,20 @@ set -euo pipefail
 # Namespace varsa geç, yoksa oluştur
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || kubectl create ns "${NAMESPACE}"
 
-# Deployment'u idempotent oluştur/güncelle
+# Deployment idempotent
 kubectl -n "${NAMESPACE}" create deploy "${APP_NAME}" --image="${IMAGE}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Image'i güncelle ve rollout bekle
+# Image update ve rollout bekle
 kubectl -n "${NAMESPACE}" set image "deploy/${APP_NAME}" "${APP_NAME}=${IMAGE}" --record
 kubectl -n "${NAMESPACE}" rollout status "deploy/${APP_NAME}"
 
-# Service: yoksa oluştur; varsa tipini ClusterIP olarak garanti altına al
+# Service: yoksa oluştur, varsa ClusterIP olarak güncelle
 if ! kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" >/dev/null 2>&1; then
   kubectl -n "${NAMESPACE}" expose deploy "${APP_NAME}" --port=80 --type=ClusterIP
 else
-  kubectl -n "${NAMESPACE}" patch svc "${APP_NAME}" -p '{"spec":{"type":"ClusterIP"}}' >/dev/null || true
+  kubectl -n "${NAMESPACE}" patch svc "${APP_NAME}" -p '{"spec":{"type":"ClusterIP"}}' >/dev/null
 fi
-
-# Endpoint debug çıktısı
-kubectl -n "${NAMESPACE}" get svc "${APP_NAME}" -o wide
-kubectl -n "${NAMESPACE}" get endpoints "${APP_NAME}" -o wide
 '''
         }
       }
@@ -149,9 +141,9 @@ kubectl -n "${NAMESPACE}" get endpoints "${APP_NAME}" -o wide
         container('kubectl') {
           sh '''#!/bin/sh
 set -euo pipefail
+. "$WORKSPACE/image.env"
 
-# Ingress'i idempotent uygula
-cat <<'YAML' | kubectl apply -f -
+cat <<YAML | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -174,18 +166,11 @@ spec:
               number: 80
 YAML
 
-# Ingress-NGINX HTTP nodePort'unu otomatik bul
+# Ingress controller’ın HTTP nodePort’unu bul
 INGRESS_HTTP_NODEPORT="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')"
-: "${INGRESS_HTTP_NODEPORT:?ingress-nginx-controller HTTP nodePort bulunamadı}"
 
 echo "INGRESS_HTTP_NODEPORT=${INGRESS_HTTP_NODEPORT}" > "$WORKSPACE/ingress.env"
-
-# Node IP'lerini bilgi için çıkar (Mac / hosts için işe yarar)
-kubectl get nodes -o wide | awk 'NR==1 || /Ready/ {print}'
-WORKER_IPS="$(kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{end}')"
-echo "NODE_IPS:"
-echo "$WORKER_IPS"
 '''
         }
       }
@@ -198,27 +183,15 @@ set -euo pipefail
 . "$WORKSPACE/image.env"
 . "$WORKSPACE/ingress.env"
 
-echo "============================================================"
-echo "Deployed image : ${IMAGE}"
-echo "Namespace      : ${NAMESPACE}"
-echo "Service        : ${APP_NAME} (ClusterIP, :80 -> targetPort:80)"
-echo "Ingress Host   : ${APP_NAME}.local"
-echo "Ingress Port   : ${INGRESS_HTTP_NODEPORT} (ingress-nginx-controller NodePort)"
-echo "------------------------------------------------------------"
-
-# Ortamına uygun örnek URL'ler (node IP'lerini kendinle değiştir)
-echo "Browse via Node IP (no hosts entry):"
+echo "Deployed image: ${IMAGE}"
+echo "Namespace: ${NAMESPACE}"
+echo "Service: ${APP_NAME} (ClusterIP)"
+echo "Ingress Host: ${APP_NAME}.local"
+echo
+echo "Browse URLs (hosts kaydın varsa):"
 echo "  http://192.168.64.31:${INGRESS_HTTP_NODEPORT}"
-echo "  http://192.168.64.30:${INGRESS_HTTP_NODEPORT}"
-
-echo
-echo "Host header ile (önerilen; Mac'in /etc/hosts dosyasına ekleyin):"
-echo "  /etc/hosts -> 192.168.64.31 ${APP_NAME}.local"
+echo "  http://192.168.64.30:${INGRESS_HTTP_NODEPORT} (eğer master'da açık ise)"
 echo "  http://${APP_NAME}.local:${INGRESS_HTTP_NODEPORT}"
-
-echo
-echo "Not: Port yazmadan (80/443) erişmek istersen ingress-nginx'i hostNetwork/MetalLB ile güncelleyebilirsin."
-echo "============================================================"
 '''
       }
     }
