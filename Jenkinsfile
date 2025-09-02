@@ -72,7 +72,7 @@ spec:
         )]) {
           container('kaniko') {
             sh '''#!/bin/sh
-set -euo pipefail
+set -eu
 
 # 1) Docker Hub auth
 mkdir -p /kaniko/.docker
@@ -111,7 +111,7 @@ echo "Pushing: ${IMAGE}"
       steps {
         container('kubectl') {
           sh '''#!/bin/sh
-set -euo pipefail
+set -eu
 . "$WORKSPACE/image.env"
 
 # Namespace varsa geç, yoksa oluştur
@@ -140,7 +140,7 @@ fi
       steps {
         container('kubectl') {
           sh '''#!/bin/sh
-set -euo pipefail
+set -eu
 . "$WORKSPACE/image.env"
 
 cat <<YAML | kubectl apply -f -
@@ -179,7 +179,7 @@ echo "INGRESS_HTTP_NODEPORT=${INGRESS_HTTP_NODEPORT}" > "$WORKSPACE/ingress.env"
     stage('Info') {
       steps {
         sh '''#!/bin/sh
-set -euo pipefail
+set -eu
 . "$WORKSPACE/image.env"
 . "$WORKSPACE/ingress.env"
 
