@@ -152,6 +152,7 @@ git push
     }
   }
 }
+  }
 
   post {
     success { echo "SUCCESS → ${env.BUILD_URL}" }
