@@ -118,29 +118,51 @@ echo "Pushing: ${IMAGE}"
           usernameVariable: 'GIT_USER',
           passwordVariable: 'GIT_TOKEN'
         )]) {
+          // 1) Clone + doğru klasöre gir
           container('git') {
-        sh '''#!/bin/sh
+            sh '''#!/bin/sh
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
 rm -rf manifests
-AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}#")"
+AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
 git clone "${AUTH_URL}" manifests
+cd "manifests/${MANIFEST_PATH}"
+echo "[INFO] PWD=$(pwd)"; ls -la
+'''
+          }
 
-# --- BURAYI GÜNCELLEDİM ---
-cd "manifests/${MANIFEST_PATH}"   # örn: manifests/base
-ls -l                             # debug amaçlı dizini listele
-# ---------------------------
+          // 2) yq ile newTag'i string olarak güncelle (aynı klasöre tekrar cd!)
+          container('yq') {
+            sh '''#!/bin/sh
+set -euo pipefail
+. "$WORKSPACE/image.env"
 
-if [ ! -f kustomization.yaml ]; then
-  echo "kustomization.yaml bulunamadı! (pwd: $(pwd))" >&2
-  exit 1
-fi
+cd "manifests/${MANIFEST_PATH}"
 
-yq e -i '.images[] |= select(.name == env.IMAGE_NAME).newTag = strenv(TAG)' kustomization.yaml
+test -f kustomization.yaml || { echo "kustomization.yaml yok: $(pwd)"; ls -la; exit 1; }
+
+yq -i '
+  .images |= ( map(
+    if .name == env(IMAGE_NAME) then
+      .newTag = strenv(TAG)
+    else .
+    end
+  ))
+' kustomization.yaml
 
 echo "----- kustomization.yaml (after) -----"
-head -n 50 kustomization.yaml
+sed -n '1,200p' kustomization.yaml
+'''
+          }
+
+          // 3) Commit & push (yine klasöre cd!)
+          container('git') {
+            sh '''#!/bin/sh
+set -euo pipefail
+. "$WORKSPACE/image.env"
+
+cd "manifests/${MANIFEST_PATH}"
 
 git config user.name  "jenkins-bot"
 git config user.email "jenkins-bot@local"
@@ -148,10 +170,10 @@ git add -A
 git commit -m "chore(cd): hello-web image -> ${IMAGE}" || echo "No changes to commit"
 git push
 '''
+          }
+        }
       }
     }
-  }
-}
   }
 
   post {
