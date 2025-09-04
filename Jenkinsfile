@@ -54,7 +54,7 @@ spec:
     DOCKERHUB_NAMESPACE = 'kemahlitos'
     APP_NAME            = 'hello-web'
     IMAGE_NAME          = 'docker.io/kemahlitos/hello-web' // kustomization.yaml ile birebir
-    MANIFEST_REPO_URL   = 'https://github.com/kemahlitos/hello-web-manifests.git'
+    MANIFEST_REPO_URL   = 'https://github.com/kemahlitos/hello-web-manifests'
     MANIFEST_PATH       = 'base'
   }
 
@@ -115,7 +115,7 @@ echo "Pushing: ${IMAGE}"
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
-: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests.git}"
+: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests}"
 : "${MANIFEST_PATH:=base}"
 
 rm -rf manifests
