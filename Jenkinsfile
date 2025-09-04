@@ -114,7 +114,7 @@ echo "Pushing: ${IMAGE}"
     stage('Update manifest repo (bump image tag)') {
       steps {
         withCredentials([usernamePassword(
-          credentialsId: 'git-creds',     // GitHub PAT (username/password)
+          credentialsId: 'git-creds',
           usernameVariable: 'GIT_USER',
           passwordVariable: 'GIT_TOKEN'
         )]) {
@@ -123,12 +123,7 @@ echo "Pushing: ${IMAGE}"
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
-: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests.git}"
-: "${MANIFEST_PATH:=base}"
-
 rm -rf manifests
-
-# AUTH URL - dikkat: '@' var
 AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
 
 git clone "${AUTH_URL}" manifests
@@ -136,7 +131,6 @@ cd "manifests/${MANIFEST_PATH}"
 '''
           }
 
-          // YAML güncellemesini yq ile güvenli yap (newTag'i string olarak yaz!)
           container('yq') {
             sh '''#!/bin/sh
 set -euo pipefail
@@ -145,7 +139,7 @@ set -euo pipefail
 yq -i '
   .images |= ( map(
     if .name == env(IMAGE_NAME) then
-      .newTag = strenv(TAG)     # <<< stringe zorla
+      .newTag = strenv(TAG)
     else .
     end
   ))
@@ -156,7 +150,6 @@ sed -n '1,200p' kustomization.yaml
 '''
           }
 
-          // Commit & push
           container('git') {
             sh '''#!/bin/sh
 set -euo pipefail
