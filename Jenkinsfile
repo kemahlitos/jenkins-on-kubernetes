@@ -120,7 +120,7 @@ set -euo pipefail
 
 rm -rf manifests
 
-# DÜZELTME: '@' eklendi
+# '@' eklendi
 AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
 
 git clone "${AUTH_URL}" manifests
@@ -131,10 +131,10 @@ if [ ! -f kustomization.yaml ]; then
   exit 1
 fi
 
-# DÜZELTME: newTag’ı string olarak yaz (tırnak içinde)
+# newTag değerini her zaman string (tırnaklı) olarak yaz
 awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
   BEGIN{inimages=0; target=0}
-  /^images:/ {inimages=1; print; next}
+  /^[[:space:]]*images:/ {inimages=1; print; next}
   {
     line=$0
     if (inimages==1) {
@@ -147,8 +147,7 @@ awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
         next
       }
       if (target==1 && match(line, /^[[:space:]]*newTag:[[:space:]]*/)) {
-        # Burada değeri "..." şeklinde yazıyoruz ki YAML string olarak parse etsin
-        sub(/newTag:[[:space:]]*.*/, "newTag: \"" tag "\"")
+        sub(/newTag:[[:space:]]*.*/, "newTag: \\"" tag "\\"")
         target=0
         print $0
         next
