@@ -119,41 +119,28 @@ echo "Pushing: ${IMAGE}"
           passwordVariable: 'GIT_TOKEN'
         )]) {
           container('git') {
-            sh '''#!/bin/sh
+        sh '''#!/bin/sh
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
 rm -rf manifests
-AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
-
+AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}#")"
 git clone "${AUTH_URL}" manifests
-cd "manifests/${MANIFEST_PATH}"
-'''
-          }
 
-          container('yq') {
-            sh '''#!/bin/sh
-set -euo pipefail
-. "$WORKSPACE/image.env"
+# --- BURAYI GÜNCELLEDİM ---
+cd "manifests/${MANIFEST_PATH}"   # örn: manifests/base
+ls -l                             # debug amaçlı dizini listele
+# ---------------------------
 
-yq -i '
-  .images |= ( map(
-    if .name == env(IMAGE_NAME) then
-      .newTag = strenv(TAG)
-    else .
-    end
-  ))
-' kustomization.yaml
+if [ ! -f kustomization.yaml ]; then
+  echo "kustomization.yaml bulunamadı! (pwd: $(pwd))" >&2
+  exit 1
+fi
+
+yq e -i '.images[] |= select(.name == env.IMAGE_NAME).newTag = strenv(TAG)' kustomization.yaml
 
 echo "----- kustomization.yaml (after) -----"
-sed -n '1,200p' kustomization.yaml
-'''
-          }
-
-          container('git') {
-            sh '''#!/bin/sh
-set -euo pipefail
-. "$WORKSPACE/image.env"
+head -n 50 kustomization.yaml
 
 git config user.name  "jenkins-bot"
 git config user.email "jenkins-bot@local"
@@ -161,11 +148,10 @@ git add -A
 git commit -m "chore(cd): hello-web image -> ${IMAGE}" || echo "No changes to commit"
 git push
 '''
-          }
-        }
       }
     }
   }
+}
 
   post {
     success { echo "SUCCESS → ${env.BUILD_URL}" }
