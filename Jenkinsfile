@@ -25,6 +25,14 @@ spec:
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
+    - name: yq
+      image: mikefarah/yq:4.44.3
+      command: ["/bin/sh"]
+      args: ["-c","sleep infinity"]
+      tty: true
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
     - name: jnlp
       image: jenkins/inbound-agent:3327.v868139a_d00e0-6
       volumeMounts:
@@ -120,44 +128,39 @@ set -euo pipefail
 
 rm -rf manifests
 
-# DÜZELTME: '@' eklendi
+# AUTH URL - dikkat: '@' var
 AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
 
 git clone "${AUTH_URL}" manifests
 cd "manifests/${MANIFEST_PATH}"
+'''
+          }
 
-if [ ! -f kustomization.yaml ]; then
-  echo "kustomization.yaml bulunamadı! (path: $(pwd))" >&2
-  exit 1
-fi
+          // YAML güncellemesini yq ile güvenli yap (newTag'i string olarak yaz!)
+          container('yq') {
+            sh '''#!/bin/sh
+set -euo pipefail
+. "$WORKSPACE/image.env"
 
-awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
-  BEGIN{inimages=0; target=0}
-  /^images:/ {inimages=1; print; next}
-  {
-    line=$0
-    if (inimages==1) {
-      if (match(line, /^[[:space:]]*- name:[[:space:]]*/)) {
-        n=line
-        gsub(/"/,"", n)
-        sub(/^[[:space:]]*- name:[[:space:]]*/, "", n)
-        target=(n==img)?1:0
-        print $0
-        next
-      }
-      if (target==1 && match(line, /^[[:space:]]*newTag:[[:space:]]*/)) {
-        sub(/newTag:[[:space:]]*.*/, "newTag: " tag)
-        target=0
-        print $0
-        next
-      }
-    }
-    print $0
-  }
-' kustomization.yaml > kustomization.yaml.tmp && mv kustomization.yaml.tmp kustomization.yaml
+yq -i '
+  .images |= ( map(
+    if .name == env(IMAGE_NAME) then
+      .newTag = strenv(TAG)     # <<< stringe zorla
+    else .
+    end
+  ))
+' kustomization.yaml
 
 echo "----- kustomization.yaml (after) -----"
 sed -n '1,200p' kustomization.yaml
+'''
+          }
+
+          // Commit & push
+          container('git') {
+            sh '''#!/bin/sh
+set -euo pipefail
+. "$WORKSPACE/image.env"
 
 git config user.name  "jenkins-bot"
 git config user.email "jenkins-bot@local"
