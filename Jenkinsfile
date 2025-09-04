@@ -131,6 +131,7 @@ if [ ! -f kustomization.yaml ]; then
   exit 1
 fi
 
+# DÜZELTME: newTag’ı string olarak yaz (tırnak içinde)
 awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
   BEGIN{inimages=0; target=0}
   /^images:/ {inimages=1; print; next}
@@ -146,7 +147,8 @@ awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
         next
       }
       if (target==1 && match(line, /^[[:space:]]*newTag:[[:space:]]*/)) {
-        sub(/newTag:[[:space:]]*.*/, "newTag: " tag)
+        # Burada değeri "..." şeklinde yazıyoruz ki YAML string olarak parse etsin
+        sub(/newTag:[[:space:]]*.*/, "newTag: \"" tag "\"")
         target=0
         print $0
         next
