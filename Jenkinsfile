@@ -25,14 +25,6 @@ spec:
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
-    - name: yq
-      image: mikefarah/yq:4.44.3
-      command: ["/bin/sh"]
-      args: ["-c","sleep infinity"]
-      tty: true
-      volumeMounts:
-        - name: workspace-volume
-          mountPath: /home/jenkins/agent
     - name: jnlp
       image: jenkins/inbound-agent:3327.v868139a_d00e0-6
       volumeMounts:
@@ -114,55 +106,58 @@ echo "Pushing: ${IMAGE}"
     stage('Update manifest repo (bump image tag)') {
       steps {
         withCredentials([usernamePassword(
-          credentialsId: 'git-creds',
+          credentialsId: 'git-creds',     // GitHub PAT (username/password)
           usernameVariable: 'GIT_USER',
           passwordVariable: 'GIT_TOKEN'
         )]) {
-          // 1) Clone + doğru klasöre gir
           container('git') {
             sh '''#!/bin/sh
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
+: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests.git}"
+: "${MANIFEST_PATH:=base}"
+
 rm -rf manifests
+
+# DÜZELTME: '@' eklendi
 AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
+
 git clone "${AUTH_URL}" manifests
 cd "manifests/${MANIFEST_PATH}"
-echo "[INFO] PWD=$(pwd)"; ls -la
-'''
-          }
 
-          // 2) yq ile newTag'i string olarak güncelle (aynı klasöre tekrar cd!)
-          container('yq') {
-            sh '''#!/bin/sh
-set -euo pipefail
-. "$WORKSPACE/image.env"
+if [ ! -f kustomization.yaml ]; then
+  echo "kustomization.yaml bulunamadı! (path: $(pwd))" >&2
+  exit 1
+fi
 
-cd "manifests/${MANIFEST_PATH}"
-
-test -f kustomization.yaml || { echo "kustomization.yaml yok: $(pwd)"; ls -la; exit 1; }
-
-yq -i '
-  .images |= ( map(
-    if .name == env(IMAGE_NAME) then
-      .newTag = strenv(TAG)
-    else .
-    end
-  ))
-' kustomization.yaml
+awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
+  BEGIN{inimages=0; target=0}
+  /^images:/ {inimages=1; print; next}
+  {
+    line=$0
+    if (inimages==1) {
+      if (match(line, /^[[:space:]]*- name:[[:space:]]*/)) {
+        n=line
+        gsub(/"/,"", n)
+        sub(/^[[:space:]]*- name:[[:space:]]*/, "", n)
+        target=(n==img)?1:0
+        print $0
+        next
+      }
+      if (target==1 && match(line, /^[[:space:]]*newTag:[[:space:]]*/)) {
+        sub(/newTag:[[:space:]]*.*/, "newTag: " tag)
+        target=0
+        print $0
+        next
+      }
+    }
+    print $0
+  }
+' kustomization.yaml > kustomization.yaml.tmp && mv kustomization.yaml.tmp kustomization.yaml
 
 echo "----- kustomization.yaml (after) -----"
 sed -n '1,200p' kustomization.yaml
-'''
-          }
-
-          // 3) Commit & push (yine klasöre cd!)
-          container('git') {
-            sh '''#!/bin/sh
-set -euo pipefail
-. "$WORKSPACE/image.env"
-
-cd "manifests/${MANIFEST_PATH}"
 
 git config user.name  "jenkins-bot"
 git config user.email "jenkins-bot@local"
