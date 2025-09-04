@@ -54,7 +54,7 @@ spec:
     DOCKERHUB_NAMESPACE = 'kemahlitos'
     APP_NAME            = 'hello-web'
     IMAGE_NAME          = 'docker.io/kemahlitos/hello-web' // kustomization.yaml ile birebir
-    MANIFEST_REPO_URL   = 'https://github.com/kemahlitos/hello-web-manifests'
+    MANIFEST_REPO_URL   = 'https://github.com/kemahlitos/hello-web-manifests.git'
     MANIFEST_PATH       = 'base'
   }
 
@@ -106,7 +106,7 @@ echo "Pushing: ${IMAGE}"
     stage('Update manifest repo (bump image tag)') {
       steps {
         withCredentials([usernamePassword(
-          credentialsId: 'git-creds',
+          credentialsId: 'git-creds',     // GitHub PAT (username/password)
           usernameVariable: 'GIT_USER',
           passwordVariable: 'GIT_TOKEN'
         )]) {
@@ -115,11 +115,14 @@ echo "Pushing: ${IMAGE}"
 set -euo pipefail
 . "$WORKSPACE/image.env"
 
-: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests}"
+: "${MANIFEST_REPO_URL:=https://github.com/kemahlitos/hello-web-manifests.git}"
 : "${MANIFEST_PATH:=base}"
 
 rm -rf manifests
-AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}#")"
+
+# DÜZELTME: '@' eklendi
+AUTH_URL="$(printf "%s" "${MANIFEST_REPO_URL}" | sed -E "s#https://#https://${GIT_USER}:${GIT_TOKEN}@#")"
+
 git clone "${AUTH_URL}" manifests
 cd "manifests/${MANIFEST_PATH}"
 
@@ -154,7 +157,7 @@ awk -v img="${IMAGE_NAME}" -v tag="${TAG}" '
 ' kustomization.yaml > kustomization.yaml.tmp && mv kustomization.yaml.tmp kustomization.yaml
 
 echo "----- kustomization.yaml (after) -----"
-sed -n '1,120p' kustomization.yaml
+sed -n '1,200p' kustomization.yaml
 
 git config user.name  "jenkins-bot"
 git config user.email "jenkins-bot@local"
